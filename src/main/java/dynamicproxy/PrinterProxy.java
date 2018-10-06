@@ -1,4 +1,4 @@
-package effectivejava3.dynamicproxy;
+package dynamicproxy;
 
 import share.Printer;
 
@@ -10,17 +10,15 @@ import java.lang.reflect.Method;
  * @date 2018/10/6 18:38
  */
 public class PrinterProxy implements InvocationHandler {
-    private Printer printer;
-
-    public PrinterProxy(Printer printer) {
-        this.printer = printer;
-    }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         System.out.println("->before invoke");
-        Object result = method.invoke(this.printer, args);
+        System.out.println("This is dynamic printer");
+        for (Object arg : args) {
+            System.out.println(arg);
+        }
         System.out.println("<-after invoke");
-        return result;
+        return null;
     }
 }
