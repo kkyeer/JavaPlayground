@@ -1,5 +1,7 @@
 package tasteSPI;
 
+import effectivejava3.share.Printer;
+
 import java.util.Iterator;
 import java.util.ServiceLoader;
 

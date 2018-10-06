@@ -1,4 +1,4 @@
-package tasteSPI;
+package effectivejava3.share;
 
 /**
  * @author kkyeer@gmail.com

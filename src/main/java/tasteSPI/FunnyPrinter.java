@@ -1,5 +1,7 @@
 package tasteSPI;
 
+import effectivejava3.share.Printer;
+
 /**
  * @author kkyeer@gmail.com
  * @date 2018/9/30 21:54

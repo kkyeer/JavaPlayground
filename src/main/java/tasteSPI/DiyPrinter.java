@@ -1,10 +1,12 @@
 package tasteSPI;
 
+import effectivejava3.share.Printer;
+
 /**
  * @author kkyeer@gmail.com
  * @date 2018/9/30 22:01
  */
-public class DiyPrinter implements Printer{
+public class DiyPrinter implements Printer {
 
     @Override
     public void print(String inString) {

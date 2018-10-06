@@ -1,6 +1,6 @@
 package effectivejava3.AnoymousInnerClassInheritation;
 
-import tasteSPI.Printer;
+import effectivejava3.share.Printer;
 
 /**
  * @author kkyeer@gmail.com
