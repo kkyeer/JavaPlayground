@@ -1,6 +1,6 @@
 package effectivejava3.dynamicproxy;
 
-import effectivejava3.share.Printer;
+import share.Printer;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

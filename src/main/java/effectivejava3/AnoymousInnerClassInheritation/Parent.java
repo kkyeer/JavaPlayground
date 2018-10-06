@@ -1,6 +1,6 @@
 package effectivejava3.AnoymousInnerClassInheritation;
 
-import effectivejava3.share.Printer;
+import share.Printer;
 
 /**
  * @author kkyeer@gmail.com

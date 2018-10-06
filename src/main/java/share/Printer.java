@@ -1,4 +1,4 @@
-package effectivejava3.share;
+package share;
 
 /**
  * @author kkyeer@gmail.com
