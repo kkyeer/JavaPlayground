@@ -1,4 +1,4 @@
-package TasteCglib;
+package tasteCglib;
 
 /**
  * @Author: kkyeer
