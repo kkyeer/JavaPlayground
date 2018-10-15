@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
  */
 public class JavaMethodAreaOOM {
     static class OOMObject{}
+//    -XX:PermSize=10M -XX:MaxPermSize=10M
     public static void main(String[] args) {
         while (true) {
             Enhancer enhancer = new Enhancer();

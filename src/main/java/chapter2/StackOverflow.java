@@ -12,7 +12,7 @@ public class StackOverflow {
         stackDepth++;
         recursiveMethod();
     }
-
+// -Xss228k
     public static void main(String[] args) {
         StackOverflow stackOverflow = new StackOverflow();
         try {

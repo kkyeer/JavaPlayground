@@ -9,7 +9,7 @@ package chapter3;
 public class ReferenceCountingGC {
     public Object ref;
     private byte[] someProp = new byte[2*1024 * 1024];
-
+//  -verbose:gc -XX:+PrintGCDetails
     public static void main(String[] args) {
         ReferenceCountingGC objA = new ReferenceCountingGC();
         ReferenceCountingGC objB = new ReferenceCountingGC();

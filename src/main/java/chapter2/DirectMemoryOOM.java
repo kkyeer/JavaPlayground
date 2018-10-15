@@ -13,6 +13,7 @@ import java.lang.reflect.Field;
 public class DirectMemoryOOM {
     private static final int _1MB = 1024*1024;
 
+//    -Xmx20M -XX:MaxDirectMemorySize=10M
     public static void main(String[] args) throws IllegalAccessException {
         // run fail
         Field unsafeField = Unsafe.class.getDeclaredFields()[0];

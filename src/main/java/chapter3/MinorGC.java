@@ -8,7 +8,7 @@ package chapter3;
  */
 public class MinorGC {
     private static final int _1MB = 1024 * 1024;
-
+// -verbose:gc -XX:+PrintGCDetails -Xms20M -Xmx20M -Xmn10M -XX:SurvivorRatio=8 -XX:+UseSerialGC
     public static void main(String[] args) {
         byte[] allo1,allo2,allo3,allo4;
         allo1 = new byte[_1MB * 2];

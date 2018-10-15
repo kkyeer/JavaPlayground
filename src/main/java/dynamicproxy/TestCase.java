@@ -1,6 +1,5 @@
 package dynamicproxy;
 
-import share.HpPrinter;
 import share.Printer;
 
 import java.lang.reflect.Proxy;
