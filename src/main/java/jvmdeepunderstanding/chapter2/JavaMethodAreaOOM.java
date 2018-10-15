@@ -1,4 +1,4 @@
-package chapter2;
+package jvmdeepunderstanding.chapter2;
 
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;

@@ -1,4 +1,4 @@
-package chapter3;
+package jvmdeepunderstanding.chapter3;
 
 public class PromoteToTenuredGen {
 //    -verbose:gc -Xms20M -Xmn10M -XX:+PrintGCDetails -XX:SurvivorRatio=8 -XX:MaxTenuringThreshold=1 -XX:+PrintTenuringDistribution  -XX:+UseSerialGC

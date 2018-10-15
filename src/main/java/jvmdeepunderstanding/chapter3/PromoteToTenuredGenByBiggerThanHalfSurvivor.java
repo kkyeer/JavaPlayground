@@ -1,4 +1,4 @@
-package chapter3;
+package jvmdeepunderstanding.chapter3;
 
 //    -verbose:gc -Xms20M -Xmn10M -XX:+PrintGCDetails -XX:SurvivorRatio=8 -XX:MaxTenuringThreshold=15 -XX:+PrintTenuringDistribution  -XX:+UseSerialGC
 // 动态对象年龄：Survivor中相同年龄对象大小超过Survivor一半，则大于等于此年龄的全部晋升老生代

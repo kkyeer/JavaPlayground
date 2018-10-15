@@ -1,4 +1,4 @@
-package chapter2;
+package jvmdeepunderstanding.chapter2;
 
 /**
  * @Author: kkyeer
