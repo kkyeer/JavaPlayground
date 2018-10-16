@@ -1,4 +1,4 @@
-package effectivejava3.dynamicproxy;
+package share;
 
 import share.Printer;
 
