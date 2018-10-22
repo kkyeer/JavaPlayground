@@ -1,6 +1,5 @@
 package effectivejava3.generics;
 
-import java.security.InvalidParameterException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -36,10 +35,21 @@ public class Recursive {
         return current;
     }
 
+    private static class BadExample implements Comparable{
+        @Override
+        public int compareTo(Object o) {
+            return 0;
+        }
+    }
+
     public static void main(String[] args) {
         List<Integer> integers = Arrays.asList(1, 3, 5);
         Integer max = max(integers);
         Object max2 = max(integers);
 
+        BadExample a1 = new BadExample();
+        BadExample a2 = new BadExample();
+        List<BadExample> badExamples = Arrays.asList(a1, a2);
+        BadExample result = max(badExamples);
     }
 }
