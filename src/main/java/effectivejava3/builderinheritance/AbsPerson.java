@@ -4,24 +4,24 @@ package effectivejava3.builderinheritance;
  * @author kkyeer@gmail.com
  * @date 2018/10/1 17:49
  */
-public abstract class AbsPerson {
+public class AbsPerson {
     int age;
     String name;
     String id;
 
-    public abstract static  class Builder<T extends Builder<T>> {
+    public static  class AbsBuilder<T> {
         int  age;
         String name;
         String id;
 
-        public Builder(int age, String name) {
+        public AbsBuilder(int age, String name) {
             this.age = age;
             this.name = name;
         }
 
         public T id(String id) {
             this.id = id;
-            return self();
+            return (T)this;
         }
 
         /**
@@ -30,14 +30,14 @@ public abstract class AbsPerson {
          * @date 2018/10/1 18:11
          * @return
          */
-        abstract AbsPerson build();
-
-        protected abstract T self();
+        AbsPerson build(){
+            return new AbsPerson(this);
+        }
     }
 
-    AbsPerson(Builder<?> builder) {
-        this.age = builder.age;
-        this.name = builder.name;
-        this.id = builder.id;
+    AbsPerson(AbsBuilder<?> absBuilder) {
+        this.age = absBuilder.age;
+        this.name = absBuilder.name;
+        this.id = absBuilder.id;
     }
 }
