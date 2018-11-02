@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,8 +18,9 @@ public class Anagrams {
     public static void main(String[] args) throws IOException, URISyntaxException {
         File dictionary = Paths.get(Anagrams.class.getResource("/").toURI()).resolve("dictionary.txt").toFile();
         int minGroupSize = 2;
-        normalForm(dictionary,minGroupSize);
+//        normalForm(dictionary,minGroupSize);
         streamForm(dictionary,minGroupSize);
+//        "hello world".chars().forEach(System.out::print);
     }
 
     private static void normalForm(File dictionary,int minGroupSize) throws URISyntaxException, FileNotFoundException {
@@ -43,10 +43,14 @@ public class Anagrams {
 
     private static void streamForm(File dictionary, int minGroupSize){
         try (Stream<String> words = Arrays.stream(Files.readAllLines(dictionary.toPath()).get(0).split("\\s"))) {
-//            过程 1.word变成Set<String>
+//            过程 1.word变成List<String>
 //            2.filter过滤大于小于阈值的Set
 //            3.返回大于小于阈值的Set
-//            words.collect(Collectors.groupingBy(Anagrams::alphabetize))
+            Collectors.groupingBy(Anagrams::alphabetize);
+            words.collect(Collectors.groupingBy(Anagrams::alphabetize))
+                    .values().parallelStream()
+                    .filter((list)->list.size()>=minGroupSize)
+                    .forEach((group)-> System.out.println(group.size() + ": " + group));
         } catch (IOException e) {
             e.printStackTrace();
         }
