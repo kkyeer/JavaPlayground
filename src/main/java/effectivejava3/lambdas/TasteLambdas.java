@@ -1,6 +1,5 @@
 package effectivejava3.lambdas;
 
-import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -11,26 +10,7 @@ import java.util.function.Supplier;
  * @Modified By:
  */
 public class TasteLambdas {
-    public static void main(String[] args) {
-        // Sort中使用Lambda的各种姿势
-        List<String> words = Arrays.asList("123513425", "askldfj", "oyui");
-        Collections.sort(words,(s1,s2)->{return s1.length()-s2.length();});
-        Collections.sort(words,(s1,s2)->Integer.compare(s1.length(),s2.length()));
-        Collections.sort(words, Comparator.comparingInt(String::length));
-        words.sort(Comparator.comparingInt(String::length));
-        System.out.println(words);
-        System.out.println("-----------Sort end------------");
 
-//        map.merge方法
-        Map<String, Integer> keyCounter = new HashMap<>(2);
-        keyCounter.put("abc", 1);
-        keyCounter.merge("abc", 1, (oldValue, value) -> oldValue + value);
-        keyCounter.merge("def",1,Integer::sum);
-        System.out.println(keyCounter);
-        System.out.println("-----------map merge end -------");
-
-        variousMethodReferenceTypes();
-    }
 
     /**
      * 各种各样的Lambda方法引用类型
@@ -57,5 +37,29 @@ public class TasteLambdas {
         E newInstance = supplier.get();
         newInstance.addAll(ori);
         return newInstance;
+    }
+
+
+
+    public static void main(String[] args) {
+        // Sort中使用Lambda的各种姿势
+        List<String> words = Arrays.asList("123513425", "askldfj", "oyui");
+        Collections.sort(words,(s1,s2)->{return s1.length()-s2.length();});
+        Collections.sort(words,(s1,s2)->Integer.compare(s1.length(),s2.length()));
+        Collections.sort(words, Comparator.comparingInt(String::length));
+        words.sort(Comparator.comparingInt(String::length));
+        System.out.println(words);
+        System.out.println("-----------Sort end------------");
+
+//        map.merge方法
+        Map<String, Integer> keyCounter = new HashMap<>(2);
+        keyCounter.put("abc", 1);
+        keyCounter.merge("abc", 1, (oldValue, value) -> oldValue + value);
+        keyCounter.merge("def",1,Integer::sum);
+        System.out.println(keyCounter);
+        System.out.println("-----------map merge end -------");
+
+        variousMethodReferenceTypes();
+        System.out.println("------variousMethodReferenceTypes end ------");
     }
 }
