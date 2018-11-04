@@ -1,9 +1,8 @@
 package effectivejava3.streams;
 
-import java.util.HashMap;
-import java.util.IntSummaryStatistics;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -68,14 +67,56 @@ public class TasteCollector {
 //        统计字母数出现次数数据
         Stream<String> words = Stream.of("GNU","not","Unix","GNU");
         IntSummaryStatistics summaryStatistics = words.collect(Collectors.summarizingInt(String::length));
-        System.out.println(summaryStatistics);//IntSummaryStatistics{count=4, sum=13, min=3, average=3.250000, max=4}
+        System.out.println(summaryStatistics);
+        //IntSummaryStatistics{count=4, sum=13, min=3, average=3.250000, max=4}
     }
 
     static void tasteJoin(){
-//        统计字母数出现次数数据
+//        单词合并
         Stream<String> words = Stream.of("GNU","not","Unix","GNU");
         System.out.println(words.collect(Collectors.joining("---","Result is:","。")));
+//    Result is:GNU---not---Unix---GNU。
+    }
 
+    static void tasteReducing(){
+        // 最简用法：返回最长的单词
+        Stream<String> words = Stream.of("GNU","not","Unix","Longest","GNU");
+        System.out.println(words.collect(Collectors.reducing(BinaryOperator.maxBy(Comparator.comparingInt(String::length)))));
+//        上述方法等同于
+//        System.out.println(words.reduce(BinaryOperator.maxBy(Comparator.comparingInt(String::length))));
+//        输出：Optional[Longest]
+
+        // 复杂用法：根据输入的最大值，返回各随机数的和
+        Random random = new Random();
+        Stream<Integer> lengths = Stream.of(3,5,1,6);
+        System.out.println(lengths.collect(Collectors.reducing(0,(length)-> random.nextInt(length),(x, y)->x+y)));
+    }
+
+    static void tasteGroupingBy(){
+//        返回各单词出线的频次,频次统计中忽略大小写，所以单词一律全大写再统计
+        Stream<String> words = Stream.of("GNU","not","Unix","Matter","Gnu","NOT");
+        Map<String,Long> stat = words.collect(Collectors.groupingBy(String::toUpperCase,Collectors.counting()));
+//        上述等同于
+//        Map<String,Long> stat = words.collect(Collectors.groupingBy(
+//                String::toUpperCase,
+//                Collectors.reducing(0L,(word)->1L,(x, y)->x+y)
+//                ));
+        System.out.println(stat);
+    }
+
+    static void tasteGroupingBy2(){
+//        统计同位异构词，当单词具有相同的组合时，作为同位异构词
+        Stream<String> words = Stream.of("GNU","not","Unix","Matter","unG","nto");
+        Map<String,List<String>> stat = words.collect(Collectors.groupingBy(
+                TasteCollector::alphabetize
+        ));
+        System.out.println(stat);
+    }
+
+    static String alphabetize(String string){
+        char[] a = string.toCharArray();
+        Arrays.sort(a);
+        return new String(a);
     }
 
 
@@ -83,7 +124,11 @@ public class TasteCollector {
     public static void main(String[] args) {
 //        tasetToMap();
 //        tasteSumming();
-        tasteSummarizing();
-        tasteJoin();
+//        tasteSummarizing();
+//        tasteJoin();
+//        tasteReducing();
+
+        tasteGroupingBy();
+        tasteGroupingBy2();
     }
 }
