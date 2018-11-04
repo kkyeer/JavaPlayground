@@ -7,21 +7,26 @@ package effectivejava3.builderinheritance;
 public class Student extends AbsPerson {
     private int classNo;
 
-    Student(AbsBuilder builder) {
+    private Student(StuBuilder builder) {
         super(builder);
         this.classNo = builder.classNo;
     }
 
-    public static class AbsBuilder extends AbsPerson.AbsBuilder<AbsBuilder> {
+    public static class StuBuilder extends AbsPerson.AbsBuilder<AbsPerson,StuBuilder> {
         int classNo;
 
-        public AbsBuilder(int age, String name,int classNo) {
+        public StuBuilder(int age, String name, int classNo) {
             super(age, name);
             this.classNo = classNo;
         }
 
-        public AbsBuilder classNo(int classNo) {
+        public StuBuilder classNo(int classNo) {
             this.classNo = classNo;
+            return this;
+        }
+
+        @Override
+        protected StuBuilder self() {
             return this;
         }
 

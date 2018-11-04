@@ -6,8 +6,9 @@ package effectivejava3.builderinheritance;
  */
 public class TestCase {
     public static void main(String[] args) {
-        Student.AbsBuilder stuBuilder = new Student.AbsBuilder(10,"John",981);
-        stuBuilder = stuBuilder.id("10293");
+        Student.StuBuilder stuBuilder = new Student.StuBuilder(10,"John",981);
+        stuBuilder = stuBuilder.classNo(12345);
+        stuBuilder = stuBuilder.id("askdfj");
         stuBuilder.classNo(2012);
         Student student = stuBuilder.build();
         System.out.println(student);
