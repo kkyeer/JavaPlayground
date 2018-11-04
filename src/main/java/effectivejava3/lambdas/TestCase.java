@@ -51,7 +51,7 @@ public class TestCase {
      * @author kkyeer
      * @date 2018/10/28 16:51
      */
-    Map<Integer,Object> prepareSafeCache(int maxSize){
+    Map<Integer,Object> prepareCustomSafeCache(int maxSize){
         MapCacheSafe<Integer,Object> mapCache = new MapCacheSafe<>(maxSize,(map)->{
             if(map.size()>maxSize){
                 map.remove(Collections.min(map.keySet()));
@@ -69,7 +69,6 @@ public class TestCase {
         for (int i = 0; i < maxSize; i++) {
             mapCache.put((mapCache.size()+1), "One" + (mapCache.size()+1));
         }
-        System.out.println("Done prepared:" + mapCache);
         return mapCache;
     }
 
@@ -78,7 +77,6 @@ public class TestCase {
         for (int i = 0; i < maxSize; i++) {
             mapCache.put((mapCache.size()+1), "One" + (mapCache.size()+1));
         }
-        System.out.println("Done prepared:" + mapCache);
         return mapCache;
     }
 
@@ -87,7 +85,6 @@ public class TestCase {
         for (int i = 0; i < maxSize; i++) {
             mapCache.put((mapCache.size()+1), "One" + (mapCache.size()+1));
         }
-        System.out.println("Done prepared:" + mapCache);
         return mapCache;
     }
 
@@ -145,13 +142,13 @@ public class TestCase {
         TestCase ts = new TestCase();
         Map<Integer,Object> testMap;
         testMap = ts.prepareConcurrent(0);
+        ts.testSafety(testMap,1000);
+        testMap = ts.prepareSyncronizedMap(0);
+        ts.testSafety(testMap,1000);
 //        Unsafe
 //        ts.testSafety(test);
 //        Unsafe
-//        testMap = ts.prepareSafeCache(0);
-
-        ts.testSafety(testMap,1000);
-        testMap = ts.prepareSyncronizedMap(0);
+        testMap = ts.prepareCustomSafeCache(0);
         ts.testSafety(testMap,1000);
     }
 }
