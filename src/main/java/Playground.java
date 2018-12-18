@@ -30,8 +30,8 @@ public class Playground {
         param3.put("paramId", "p1");
         param3.put("paramName", "grade");
         param3.put("paramValue", "high");
-        
-        
+
+
 //        p2
         Map<String, Object> param4 = new HashMap<>(3);
         param4.put("paramId", "p2");
@@ -58,21 +58,16 @@ public class Playground {
         System.out.println(hoToVer(source));
     }
 
-    private static Map<String,Map<String, Object>> hoToVer(List<Map<String, Object>> source){
-        Map<String,Map<String, Object>> result = source.stream().collect(
+    private static Map<String, Map<String, Object>> hoToVer(List<Map<String, Object>> source) {
+        return source.stream().collect(
                 Collectors.groupingBy(
                         (inMap) -> (String) inMap.get("paramId"),
                         Collector.of(
                                 HashMap::new,
-                                (resultMap,sourceMap)->{
-                                    resultMap.put((String) sourceMap.get("paramName"), sourceMap.get("paramValue"));
-                                },
-                                (map1,map2)->map1,
-                                Collector.Characteristics.UNORDERED
+                                (resultMap, sourceMap) -> resultMap.put((String) sourceMap.get("paramName"), sourceMap.get("paramValue")),
+                                (map1, map2) -> map1
                         )
                 )
         );
-
-        return result;
     }
 }
