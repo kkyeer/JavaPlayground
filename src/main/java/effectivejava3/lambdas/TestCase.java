@@ -149,6 +149,6 @@ public class TestCase {
 //        ts.testSafety(test);
 //        Unsafe
         testMap = ts.prepareCustomSafeCache(0);
-        ts.testSafety(testMap,1000);
+        ts.testSafety(testMap, 1000);
     }
 }
