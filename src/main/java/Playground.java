@@ -1,9 +1,9 @@
-import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 /**
  * @Author: kkyeer
@@ -58,48 +58,21 @@ public class Playground {
         System.out.println(hoToVer(source));
     }
 
-    private static List<Map<String, Object>> hoToVer(List<Map<String, Object>> source){
-        List<Map<String, Object>> result = new ArrayList<>(12);
-        List<Map<String, Object>> result2 = source.stream().collect(
-            new Collector<Map<String, Object>, Map<String,Object>, List<Map<String, Object>>>() {
-                @Override
-                public Supplier<Map<String, Object>> supplier() {
-                    return HashMap::new;
-                }
-
-                @Override
-                public BiConsumer<Map<String, Object>, Map<String, Object>> accumulator() {
-                    return (resultMap,sourceMap)->{
-                        System.out.println("accu:"+resultMap+sourceMap);
-                        resultMap.put("paramId", sourceMap.get("paramId"));
-                        resultMap.put((String) sourceMap.get("paramName"), sourceMap.get("paramValue"));
-                    };
-                }
-
-                @Override
-                public BinaryOperator<Map<String, Object>> combiner() {
-                    return (result1,result2)->{
-                        System.out.println("combiner:"+result1+result2);
-                        result1.putAll(result2);
-                        return result1;
-                    };
-                }
-
-                @Override
-                public Function<Map<String, Object>, List<Map<String, Object>>> finisher() {
-                    return (map)->{
-                        result.add(map);
-                        return result;
-                    };
-                }
-
-                @Override
-                public Set<Characteristics> characteristics() {
-                    return Collections.unmodifiableSet(EnumSet.of(Characteristics.UNORDERED));
-                }
-            }
+    private static Map<String,Map<String, Object>> hoToVer(List<Map<String, Object>> source){
+        Map<String,Map<String, Object>> result = source.stream().collect(
+                Collectors.groupingBy(
+                        (inMap) -> (String) inMap.get("paramId"),
+                        Collector.of(
+                                HashMap::new,
+                                (resultMap,sourceMap)->{
+                                    resultMap.put((String) sourceMap.get("paramName"), sourceMap.get("paramValue"));
+                                },
+                                (map1,map2)->map1,
+                                Collector.Characteristics.UNORDERED
+                        )
+                )
         );
-        System.out.println("result2:"+result2);
+
         return result;
     }
 }
