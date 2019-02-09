@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  * @Modified By:
  */
 public class Playground {
-    public static void main(String[] args) {
+    private static void testHoriToVertical(){
         List<Map<String, Object>> source = new ArrayList<>(2);
 
         Map<String, Object> param1 = new HashMap<>(3);
@@ -57,7 +57,6 @@ public class Playground {
         source.add(param6);
         System.out.println(hoToVer(source));
     }
-
     private static Map<String, Map<String, Object>> hoToVer(List<Map<String, Object>> source) {
         return source.stream().collect(
                 Collectors.groupingBy(
@@ -69,5 +68,10 @@ public class Playground {
                         )
                 )
         );
+    }
+
+
+    public static void main(String[] args) {
+        testHoriToVertical();
     }
 }

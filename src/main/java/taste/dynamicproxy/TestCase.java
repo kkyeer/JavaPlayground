@@ -1,4 +1,4 @@
-package dynamicproxy;
+package taste.dynamicproxy;
 
 import share.Printer;
 
