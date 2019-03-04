@@ -10,7 +10,7 @@ import java.lang.reflect.Method;
 public class PrinterProxy implements InvocationHandler {
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) {
         System.out.println("->before invoke");
         System.out.println("This is dynamic printer");
         for (Object arg : args) {

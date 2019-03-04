@@ -1,4 +1,4 @@
-package taste.playground;
+package taste.jit;
 
 /**
  * @Author: kkyeer
