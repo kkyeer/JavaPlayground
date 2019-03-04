@@ -53,6 +53,8 @@ buildNumber.properties
 .idea/**/dynamic.xml
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
+.idea/**.xml
+.idea/**.iml
 
 # Gradle
 .idea/**/gradle.xml
