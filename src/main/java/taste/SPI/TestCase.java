@@ -1,4 +1,4 @@
-package taste.tasteSPI;
+package taste.SPI;
 
 import share.Printer;
 

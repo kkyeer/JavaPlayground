@@ -1,4 +1,4 @@
-package taste.tasteCglib;
+package taste.cglib;
 
 import net.sf.cglib.beans.BeanGenerator;
 import net.sf.cglib.beans.ImmutableBean;
