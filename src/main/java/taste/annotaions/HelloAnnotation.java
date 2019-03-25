@@ -1,5 +1,7 @@
 package taste.annotaions;
 
+import java.util.List;
+
 /**
  * @Author: kkyeer
  * @Description:
@@ -7,5 +9,14 @@ package taste.annotaions;
  * @Modified By:
  */
 public class HelloAnnotation {
+    public static void main(String[] args) {
 
+    }
+
+    //  targetdemo:parameter
+    public String getId(@NonNull String userName) {
+        // targetdemo:type_use
+        List<@NonNull String> stringList;
+        return null;
+    }
 }
