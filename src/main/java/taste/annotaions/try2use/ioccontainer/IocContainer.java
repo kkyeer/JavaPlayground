@@ -1,4 +1,4 @@
-package taste.annotaions.try2use;
+package taste.annotaions.try2use.ioccontainer;
 
 import utils.Reflections;
 
