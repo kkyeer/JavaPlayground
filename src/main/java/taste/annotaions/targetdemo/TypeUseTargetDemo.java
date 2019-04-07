@@ -17,7 +17,7 @@ public class TypeUseTargetDemo  extends @TypeUseAnnotation("Before super class")
     private  String @TypeUseAnnotation("Annotated an array") [] box;
 
 
-    public @TypeUseAnnotation("Return type") String trapOpration(List<@TypeUseAnnotation("Type parameter") String> param) throws @TypeUseAnnotation("Exception annotation") Exception{
+    public @TypeUseAnnotation("Return type") String trapOperation(List<@TypeUseAnnotation("Type parameter") String> param) throws @TypeUseAnnotation("Exception annotation") Exception{
         if (param != null) {
             throw new Exception("You are trapped");
         }
@@ -48,7 +48,7 @@ public class TypeUseTargetDemo  extends @TypeUseAnnotation("Before super class")
         System.out.println(field.getAnnotatedType().getAnnotation(TypeUseAnnotation.class).value());
 
         // todo 参数列表中形参的注解
-        Method method = clazz.getMethod("trapOpration", List.class);
+        Method method = clazz.getMethod("trapOperation", List.class);
         Parameter parameter = method.getParameters()[0];
         ParameterizedType type = (ParameterizedType) parameter.getParameterizedType();
         String actualType = type.getActualTypeArguments()[0].getTypeName();
