@@ -98,3 +98,8 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 
+.idea/JavaPlayground.iml
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/modules.xml
+/.idea/
