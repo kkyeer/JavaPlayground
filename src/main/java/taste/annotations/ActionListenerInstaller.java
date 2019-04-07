@@ -1,4 +1,4 @@
-package taste.annotaions;
+package taste.annotations;
 
 import java.awt.event.ActionListener;
 import java.lang.reflect.*;
@@ -19,7 +19,7 @@ public class ActionListenerInstaller {
                 if (actionListenerFor != null) {
                     String srcName = actionListenerFor.source();
                     Field srcField = clazz.getDeclaredField(srcName);
-                    // 此处需要设置成可访问，不然会报错java.lang.IllegalAccessException: Class taste.annotaions.ActionListenerInstaller can not access a member of class taste.annotaions.ButtonFrame with modifiers "private"
+                    // 此处需要设置成可访问，不然会报错java.lang.IllegalAccessException: Class taste.annotations.ActionListenerInstaller can not access a member of class taste.annotations.ButtonFrame with modifiers "private"
                     srcField.setAccessible(true);
                     Object srcObj = srcField.get(object);
                     addListener(srcObj,method,object);

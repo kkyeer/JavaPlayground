@@ -1,4 +1,4 @@
-package taste.annotaions.targetdemo;
+package taste.annotations.targetdemo;
 
 import java.lang.reflect.*;
 import java.util.AbstractList;

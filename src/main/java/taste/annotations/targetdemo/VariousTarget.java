@@ -1,4 +1,4 @@
-package taste.annotaions.targetdemo;
+package taste.annotations.targetdemo;
 
 import java.lang.annotation.*;
 import java.lang.reflect.Constructor;
@@ -50,7 +50,7 @@ public class VariousTarget {
         Annotation[][] parameterAnnos = method.getParameterAnnotations();
         System.out.println("PARAMETER:" + ((ParameterAnnotation) parameterAnnos[0][0]).value());
 
-        Package pkg = Package.getPackage("taste.annotaions.targetdemo");
+        Package pkg = Package.getPackage("taste.annotations.targetdemo");
         System.out.println("PACKAGE:" + pkg.getAnnotation(PackageAnnotation.class).value());
     }
 

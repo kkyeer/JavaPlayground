@@ -1,4 +1,4 @@
-package taste.annotaions.try2use.ioccontainer;
+package taste.annotations.targetdemo;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,12 +7,12 @@ import java.lang.annotation.Target;
 
 /**
  * @Author: kkyeer
- * @Description: 模拟Spring的Service注解
- * @Date:Created in 22:47 2019/4/6
+ * @Description:
+ * @Date:Created in 15:16 2019/3/25
  * @Modified By:
  */
-@Target(ElementType.TYPE)
+@Target(ElementType.TYPE_USE)
 @Retention(RetentionPolicy.RUNTIME)
-@interface Service {
-
+public @interface TypeUseAnnotation {
+    String value();
 }

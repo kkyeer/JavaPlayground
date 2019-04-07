@@ -5,4 +5,4 @@
  * @Modified By:
  */
 @Knowledge("Annotations")
-package taste.annotaions;
+package taste.annotations;

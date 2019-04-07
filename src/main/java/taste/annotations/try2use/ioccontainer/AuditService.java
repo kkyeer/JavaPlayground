@@ -1,4 +1,4 @@
-package taste.annotaions.try2use.ioccontainer;
+package taste.annotations.try2use.ioccontainer;
 
 /**
  * @Author: kkyeer

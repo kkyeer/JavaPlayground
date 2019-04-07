@@ -1,4 +1,4 @@
-package taste.annotaions.targetdemo;
+package taste.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -8,11 +8,12 @@ import java.lang.annotation.Target;
 /**
  * @Author: kkyeer
  * @Description:
- * @Date:Created in 15:16 2019/3/25
+ * @Date:Created in 20:37 2019/3/20
  * @Modified By:
  */
-@Target(ElementType.TYPE_USE)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface TypeUseAnnotation {
-    String value();
+public @interface Charger {
+    String name();
+    String hobby() default "ppp";
 }

@@ -1,12 +1,12 @@
-package taste.annotaions.try2use.ioccontainer;
+package taste.annotations.try2use.ioccontainer;
 
 /**
  * @Author: kkyeer
- * @Description: 模拟Controller，假设当前Controller不在容器管理中
+ * @Description: 测试一下
  * @Date:Created in 22:54 2019/4/6
- * @Modified By:
+ * @Modified By:kk in 12:55 2019/4/7
  */
-public class Controller {
+class TestCase {
     public static void main(String[] args) throws Exception {
         IocContainer container = new IocContainer();
         CommonService service = container.getService(AuditService.class);

@@ -1,4 +1,4 @@
-package taste.annotaions;
+package taste.annotations;
 
 import share.Person;
 

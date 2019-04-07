@@ -5,4 +5,4 @@
  * @Modified By:
  */
 @VariousTarget.PackageAnnotation("This is a demo package")
-package taste.annotaions.targetdemo;
+package taste.annotations.targetdemo;

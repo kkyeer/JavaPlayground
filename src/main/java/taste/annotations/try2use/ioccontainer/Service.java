@@ -1,4 +1,4 @@
-package taste.annotaions;
+package taste.annotations.try2use.ioccontainer;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,13 +7,12 @@ import java.lang.annotation.Target;
 
 /**
  * @Author: kkyeer
- * @Description:
- * @Date:Created in 20:37 2019/3/20
+ * @Description: 模拟Spring的Service注解
+ * @Date:Created in 22:47 2019/4/6
  * @Modified By:
  */
-@Target(ElementType.METHOD)
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Charger {
-    String name();
-    String hobby() default "ppp";
+@interface Service {
+
 }
