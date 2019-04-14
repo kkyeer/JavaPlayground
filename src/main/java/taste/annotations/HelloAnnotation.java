@@ -13,9 +13,9 @@ public class HelloAnnotation {
 
     }
 
-    //  targetdemo:parameter
+    //  targ3t:parameter
     public String getId(@NonNull String userName) {
-        // targetdemo:type_use
+        // targ3t:type_use
         List<@NonNull String> stringList;
         return null;
     }

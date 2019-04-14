@@ -1,4 +1,4 @@
-package taste.annotations.targetdemo;
+package taste.annotations.meta.targ3t;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
