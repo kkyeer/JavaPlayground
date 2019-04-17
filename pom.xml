@@ -28,6 +28,15 @@
             <artifactId>quartz-jobs</artifactId>
             <version>2.2.3</version>
         </dependency>
+    
+        <!-- https://mvnrepository.com/artifact/javax/javaee-api -->
+        <dependency>
+            <groupId>javax</groupId>
+            <artifactId>javaee-api</artifactId>
+            <version>8.0.1</version>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
     <build>
         <resources>

@@ -1,4 +1,4 @@
-package multithread.generator;
+package concurrent.generator;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

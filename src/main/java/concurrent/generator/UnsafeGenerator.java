@@ -1,4 +1,4 @@
-package multithread.generator;
+package concurrent.generator;
 
 /**
  * @Author: kkyeer
