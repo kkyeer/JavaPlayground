@@ -15,7 +15,7 @@ public class ThreadSafeCountDown implements CountDown {
     private AtomicInteger count = new AtomicInteger(20);
 
     /**
-     * 记一次时
+     * 倒计时tick一下
      *
      * @return 计时后的值
      */

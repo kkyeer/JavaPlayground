@@ -7,5 +7,5 @@ package concurrent.annotations;
  * @Modified By:
  */
 public @interface GuardedBy {
-
+    String value();
 }
