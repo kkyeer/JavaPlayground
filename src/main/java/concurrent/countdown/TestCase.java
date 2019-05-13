@@ -10,6 +10,8 @@ class TestCase {
     public static void main(String[] args) {
 //        testCountDown(new NotThreadsafeCountDown());
         testCountDown(new ThreadSafeCountDown());
+
+
     }
 
     static void testCountDown(CountDown countDown) {

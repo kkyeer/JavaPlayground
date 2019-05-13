@@ -1,4 +1,4 @@
-package concurrent.generator;
+package concurrent.serialgenerator;
 
 /**
  * @Author: kkyeer
@@ -6,7 +6,7 @@ package concurrent.generator;
  * @Date:Created in 16:19 2019/4/15
  * @Modified By:
  */
-interface Generator {
+interface SerialGenerator {
     /**
      * 获取下一个序列号
      * @return 下一个序列号
