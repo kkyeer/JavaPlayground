@@ -46,7 +46,9 @@ class TestCase {
                     // 等所有线程全部初始完成一起启动
                     startControlCountDownLatch.await();
                     int serial;
-                    while ((serial = serialGenerator.getNext()) <= TEST_MAX_INDEX_BOUNDS) {
+                    // 当达到最大值或者已经判断线程不安全时停止，注意获取的threadSafe值与后面的set方法未作同步处理，因此一九有可能多个线程同时设置不安全
+                    // 但因为这种情况不影响最终结果，所以不作处理
+                    while ((serial = serialGenerator.getNext()) <= TEST_MAX_INDEX_BOUNDS && threadSafe.get()==true) {
                         if (serialSet.contains(serial)) {
                             System.out.println("Serial already exists:"+serial);
                             threadSafe.set(false);
