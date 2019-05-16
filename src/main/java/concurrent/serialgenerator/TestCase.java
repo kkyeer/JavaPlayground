@@ -20,7 +20,7 @@ class TestCase {
     /**
      * 测试用的序列最大值
      */
-    private static final int TEST_MAX_INDEX_BOUNDS = 1000;
+    private static final int TEST_SERIAL_MAX_BOUND = 1000;
 
     public static void main(String[] args) {
         System.out.println("Testing unsafe generator");
@@ -48,7 +48,7 @@ class TestCase {
                     int serial;
                     // 当达到最大值或者已经判断线程不安全时停止，注意获取的threadSafe值与后面的set方法未作同步处理，因此一九有可能多个线程同时设置不安全
                     // 但因为这种情况不影响最终结果，所以不作处理
-                    while ((serial = serialGenerator.getNext()) <= TEST_MAX_INDEX_BOUNDS && threadSafe.get()==true) {
+                    while ((serial = serialGenerator.getNext()) <= TEST_SERIAL_MAX_BOUND && threadSafe.get()==true) {
                         if (serialSet.contains(serial)) {
                             System.out.println("Serial already exists:"+serial);
                             threadSafe.set(false);
