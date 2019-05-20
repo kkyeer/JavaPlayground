@@ -1,4 +1,4 @@
-package concurrent.asynctask;
+package concurrent.future;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +20,7 @@ public class TestCase {
             map.values().forEach(
                     val -> {sum.addAndGet((Integer) val);}
             );
-            Map<String, Object> sumResult = new HashMap<>();
+            Map<String, Object> sumResult = new HashMap<>(1);
             sumResult.put("sum", sum.get());
             return sumResult;
         };

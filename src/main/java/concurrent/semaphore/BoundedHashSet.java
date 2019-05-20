@@ -1,4 +1,4 @@
-package concurrent.boundedset;
+package concurrent.semaphore;
 
 import java.util.HashSet;
 import java.util.Set;

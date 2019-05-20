@@ -1,4 +1,4 @@
-package concurrent.stormcastle;
+package concurrent.barrier;
 
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
