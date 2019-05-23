@@ -29,11 +29,12 @@ class TimedRun{
                         testQueue.put("hh");
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+//                    e.printStackTrace();
+                    System.out.println("run over,doing clean work");
                 }
                 System.out.println("run over in:" + (System.currentTimeMillis() - start));
             }
         }
-        TimedRun.cancelTimeout(new Test(),20,TimeUnit.SECONDS);
+        TimedRun.cancelTimeout(new Test(),5,TimeUnit.SECONDS);
     }
 }
