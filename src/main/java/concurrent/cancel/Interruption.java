@@ -34,15 +34,17 @@ class Interruption extends Thread{
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                // some repeat work  ----> 可用
                 System.out.println("running");
-                // blocking work,may be blocked for some reason
-                if(!Thread.currentThread().isInterrupted()){
+                try {
                     testQueue.put("hh");
+                } catch (InterruptedException e) {
+                    // 打印这段话，说明被阻塞的put方法会探测到interrupted状态并主动抛出异常
+                    System.out.println("catch InterruptedException in blocked put process");
+                    throw e;
                 }
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         System.out.println("interrupted:"+System.currentTimeMillis());
     }

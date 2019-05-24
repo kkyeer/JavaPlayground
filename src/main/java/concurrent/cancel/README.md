@@ -17,11 +17,23 @@
 
 代码参见**concurrent.cancel.Interruption**
 
-### 重点与原理
-1. 执行queue.put的过程中会探测interrupt状态
-2. 在执行有可能被block或者长时间的代码前，判断当前是否interrupt
+### 重点代码与原理
 
-### 缺点
-1. 不通用
-2. 需要判断的地方较多
+```java
+    while (!Thread.currentThread().isInterrupted()) {
+        testQueue.put("hh");
+    }
+```
+1. testQueue.put()方法执行的过程中，假如探测到宿主线程被interrupt,会抛出interrupt异常，
+避免手动维护状态字段的阻塞问题,可以通过查看测试代码的打印来证明
+
+
+## 方法4：通过ExecutorService的shutdown方法
+
+参考concurrent.cancel.shutdown.PrintBlockedOnExitLogWriter
+
+Executor方法的shutdown方法会主动关闭所有线程，通过与线程的方法耦合（即在任务执行完毕
+后调用shutdown方法来关闭相关线程
+
+## 
 

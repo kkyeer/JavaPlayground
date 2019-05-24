@@ -46,7 +46,7 @@ class PollState extends Thread{
                 }
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         System.out.println("canceled:"+System.currentTimeMillis());
     }
