@@ -35,5 +35,52 @@
 Executor方法的shutdown方法会主动关闭所有线程，通过与线程的方法耦合（即在任务执行完毕
 后调用shutdown方法来关闭相关线程
 
-## 
+## 方法5：毒药丸
+
+参考 concurrent.cancel.poisonpill，用于生产者-消费者模型
+### 优点
+可以将队列中阻塞的部分处理完成
+### 缺点
+生产者-消费者数量必须是确定值，假如生产者僵死或者异常，可能出现内存泄漏
+
+
+## 监控关闭的任务
+
+参考concurrent.cancel.trackservice
+### 重点
+#### 代码
+```java
+    @Override
+    public void execute(Runnable command) throws RejectedExecutionException {
+        executorService.execute(
+                ()->{
+                        try {
+                            command.run();
+                        }finally {
+                            if (isShutdown()&& Thread.currentThread().isInterrupted()) {
+                                cancelledWorkSet.add(command);
+                            }
+                        }
+                }
+        );
+    }
+    @Override
+        public List<Runnable> shutdownNow() {
+            executorService.shutdownNow();
+            // 阻塞等到内部的Executor结束再返回
+            try {
+                executorService.awaitTermination(1, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return new ArrayList<>(cancelledWorkSet);
+        }
+```
+#### 说明
+1. 包裹的任务执行完成后，根据isShutdown()，和线程的interrupted状态共同确认线程是否是在关闭过程中终结
+2. 调用shutdownNow方法时，使用awaitTermination来阻塞到内部service完成，否则返回的List不全
+
+
+
+
 
