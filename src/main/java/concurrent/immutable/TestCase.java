@@ -1,11 +1,7 @@
 package concurrent.immutable;
 
-import effectivejava3.generics.Stack;
-
 import java.math.BigInteger;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @Author: kkyeer

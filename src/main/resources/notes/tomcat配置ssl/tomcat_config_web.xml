@@ -25,11 +25,11 @@
   <!-- This document defines default values for *all* web applications      -->
   <!-- loaded into this instance of Tomcat.  As each application is         -->
   <!-- deployed, this file is processed, followed by the                    -->
-  <!-- "/WEB-INF/web.xml" deployment descriptor from your own               -->
+  <!-- "/WEB-INF/tomcat_config_web.xml" deployment descriptor from your own               -->
   <!-- applications.                                                        -->
   <!--                                                                      -->
   <!-- WARNING:  Do not configure application-specific resources here!      -->
-  <!-- They should go in the "/WEB-INF/web.xml" file in your application.   -->
+  <!-- They should go in the "/WEB-INF/tomcat_config_web.xml" file in your application.   -->
 
 
   <!-- ================== Built In Servlet Definitions ==================== -->
@@ -38,7 +38,7 @@
   <!-- The default servlet for all web applications, that serves static     -->
   <!-- resources.  It processes all requests that are not mapped to other   -->
   <!-- servlets with servlet mappings (defined either here or in your own   -->
-  <!-- web.xml file).  This servlet supports the following initialization   -->
+  <!-- tomcat_config_web.xml file).  This servlet supports the following initialization   -->
   <!-- parameters (default values are in square brackets):                  -->
   <!--                                                                      -->
   <!--   debug               Debugging detail level for messages logged     -->
@@ -402,7 +402,7 @@
   <!-- The servlet mappings for the built in servlets defined above.  Note  -->
   <!-- that, by default, the CGI and SSI servlets are *not* mapped.  You    -->
   <!-- must uncomment these mappings (or add them to your application's own -->
-  <!-- web.xml deployment descriptor) to enable these services              -->
+  <!-- tomcat_config_web.xml deployment descriptor) to enable these services              -->
 
     <!-- The mapping for the default servlet -->
     <servlet-mapping>
@@ -612,7 +612,7 @@
   <!-- When serving static resources, Tomcat will automatically generate    -->
   <!-- a "Content-Type" header based on the resource's filename extension,  -->
   <!-- based on these mappings.  Additional mappings can be added here (to  -->
-  <!-- apply to all web applications), or in your own application's web.xml -->
+  <!-- apply to all web applications), or in your own application's tomcat_config_web.xml -->
   <!-- deployment descriptor.                                               -->
   <!-- Note: Extensions are always matched in a case-insensitive manner.    -->
 
@@ -4696,7 +4696,7 @@
   <!-- customize) or returns a 404 status, depending on the value of the    -->
   <!-- listings setting.                                                    -->
   <!--                                                                      -->
-  <!-- If you define welcome files in your own application's web.xml        -->
+  <!-- If you define welcome files in your own application's tomcat_config_web.xml        -->
   <!-- deployment descriptor, that list *replaces* the list configured      -->
   <!-- here, so be sure to include any of the default values that you wish  -->
   <!-- to use within your application.                                       -->

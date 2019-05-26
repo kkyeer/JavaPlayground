@@ -84,3 +84,9 @@ Executor方法的shutdown方法会主动关闭所有线程，通过与线程的�
 
 
 
+## 使用RunnableFuture的cancel方法
+
+具体见concurrent.cancel.runnableFuture.TestCase
+
+
+
