@@ -2,8 +2,8 @@ package concurrent.future;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
+import java.util.Random;
+import java.util.concurrent.*;
 import java.util.function.Function;
 
 /**
@@ -13,26 +13,57 @@ import java.util.function.Function;
  * @Modified By:
  */
 class WebDataLoader {
-    private FutureTask<Map<String, Object>> futureTask = new FutureTask<>(() -> {
-        // 模拟网络请求
-        System.out.println("Send request");
-        Thread.sleep(1000);
-        System.out.println("Got result");
-        Map<String, Object> result = new HashMap<>();
-        result.put("num1", 9999);
-        result.put("num2", 8888);
-        return result;
-    });
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(4);
 
-    public Map<String, Object> getResult() throws ExecutionException, InterruptedException {
-        new Thread(futureTask).start();
-        return futureTask.get();
+    private class DownloadTask implements Callable<Map<String,Object>>{
+        private final String url;
+
+        DownloadTask(String url) {
+            this.url = url;
+        }
+
+        /**
+         * Computes a result, or throws an exception if unable to do so.
+         *
+         * @return computed result
+         * @throws Exception if unable to compute a result
+         */
+        @Override
+        public Map<String, Object> call() throws Exception {
+            // 模拟网络请求
+            System.out.println("Send request ["+url+"]");
+            Random random = new Random();
+            int sleepTime = random.nextInt(1000);
+            if (sleepTime >= 500) {
+                throw new Exception("连接超时");
+            }
+            Thread.sleep(sleepTime);
+            Map<String, Object> result = new HashMap<>(2);
+            result.put("num1", 9999);
+            result.put("num2", sleepTime);
+            return result;
+        }
     }
 
-    public Map<String, Object> getResult(Function<Map<String,Object>,Map<String,Object>> function) throws ExecutionException, InterruptedException {
-        new Thread(futureTask).start();
-        Map<String, Object> result = futureTask.get();
-        return function.apply(result);
+    Map<String, Object> getResult(String url) throws InterruptedException{
+        Future<Map<String, Object>> futureTask = EXECUTOR_SERVICE.submit(new DownloadTask(url));
+        try {
+            return futureTask.get();
+        } catch (InterruptedException e) {
+            System.out.println("Interrupted while performing task");
+            throw e;
+        } catch (ExecutionException e) {
+            System.out.println("Error while performing task's inner runnable");
+            throw new RuntimeException(e);
+        } catch (CancellationException e) {
+            System.out.println("Cancelled while performing task's inner runnable");
+        }
+        return null;
+    }
+
+    Integer getResult(String url,Function<Map<String, Object>, Integer> function) throws InterruptedException{
+        Map<String, Object> downloadResult = getResult(url);
+        return function.apply(downloadResult);
     }
 
 }

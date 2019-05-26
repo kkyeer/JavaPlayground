@@ -1,9 +1,9 @@
 package concurrent.future;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 /**
@@ -13,18 +13,26 @@ import java.util.function.Function;
  * @Modified By:
  */
 public class TestCase {
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
+    public static void main(String[] args){
         WebDataLoader loader = new WebDataLoader();
-        Function<Map<String, Object>, Map<String, Object>> function = map -> {
-            AtomicInteger sum = new AtomicInteger(0);
-            map.values().forEach(
-                    val -> {sum.addAndGet((Integer) val);}
-            );
-            Map<String, Object> sumResult = new HashMap<>(1);
-            sumResult.put("sum", sum.get());
-            return sumResult;
+        ExecutorService executorService = Executors.newFixedThreadPool(4);
+        Function<Map<String, Object>, Integer> reduceFunction = map -> {
+            Optional<Object> result = map.values().parallelStream().reduce((a, b)->(Integer)a+(Integer)b);
+            return (Integer)result.get();
         };
-        System.out.println(loader.getResult());
-        System.out.println(loader.getResult(function));
+        for (int i = 0; i < 4; i++) {
+            String url = "URL___"+i;
+            executorService.execute(
+                    ()->
+                    {
+                        try {
+                            System.out.println(loader.getResult(url,reduceFunction));
+                        } catch (Exception e) {
+                            System.out.println("No result:"+e.getMessage());
+                        }
+                    }
+            );
+        }
+
     }
 }
