@@ -44,3 +44,24 @@ abstract class BaseCalculator {
 
 ```
 说明：加法的算法，抽象成一种策略，通过setter引入
+
+## 测试用例
+```java
+    public static void main(String[] args){
+        CheapCalculator casio = new CheapCalculator("Casio", 100, new BigDecimal("0.99"));
+        System.out.println(casio);
+        try {
+            System.out.println(casio.add(2, 3));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        AddArithmetic simpleAdd = new SimpleAddArithmetic();
+        casio.setAddArithmetic(simpleAdd);
+        try {
+            System.out.println(casio.add(2, 3));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+```
+说明：组装一个廉价计算器，注意第一次调用add方法时，因为没有指定加法算法，是失败的

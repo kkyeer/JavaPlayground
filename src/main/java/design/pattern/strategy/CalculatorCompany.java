@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  */
 public class CalculatorCompany {
     public static void main(String[] args){
-        CheapCalculator casio = new CheapCalculator("Casio", 100, new BigDecimal(0.99));
+        CheapCalculator casio = new CheapCalculator("Casio", 100, new BigDecimal("0.99"));
         System.out.println(casio);
         try {
             System.out.println(casio.add(2, 3));
