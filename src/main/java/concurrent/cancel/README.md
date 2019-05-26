@@ -88,5 +88,29 @@ Executor方法的shutdown方法会主动关闭所有线程，通过与线程的�
 
 具体见concurrent.cancel.runnableFuture.TestCase
 
+## 统一处理线程中抛出的异常
+具体见 concurrent.cancel.exceptionhandler.handler
+
+## 统一拦截线程池中任务执行完成
+具体见 concurrent.cancel.afterexecute
+```java
+class LogAfterShutdownThreadPoolExecutor extends ThreadPoolExecutor {
+    public LogAfterShutdownThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
+        super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
+    }
+
+    @Override
+    protected void afterExecute(Runnable r, Throwable t) {
+        super.afterExecute(r, t);
+        StringBuilder stringBuilder = new StringBuilder(Thread.currentThread().getName());
+        stringBuilder.append(",任务执行完成");
+        if (t != null) {
+            stringBuilder.append(",有异常："+t.getMessage());
+        }
+        System.out.println(stringBuilder.toString());
+    }
+}
+```
+
 
 
