@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @Date:Created in 20:27 2019/5/17
  * @Modified By:
  */
-public class TestCase {
+class TestCase {
     /**
      * 测试线程数
      */

@@ -10,12 +10,12 @@ import java.util.concurrent.Semaphore;
  * @Date:Created in 20:22 2019/5/17
  * @Modified By:
  */
-public class BoundedHashSet<E>{
+class BoundedHashSet<E>{
     private Set<E> set = new HashSet<>();
 
     private Semaphore semaphore;
 
-    public BoundedHashSet(int maxSize) {
+    BoundedHashSet(int maxSize) {
         this.semaphore = new Semaphore(maxSize);
     }
 
@@ -28,7 +28,7 @@ public class BoundedHashSet<E>{
         }
     }
 
-    public void remove(E obj){
+    void remove(E obj){
         synchronized (this){
             if (this.set.contains(obj)) {
                 this.set.remove(obj);
@@ -37,7 +37,7 @@ public class BoundedHashSet<E>{
         }
     }
 
-    public int getSize(){
+    int getSize(){
         return this.set.size();
     }
 }
