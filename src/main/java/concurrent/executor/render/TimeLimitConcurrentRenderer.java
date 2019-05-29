@@ -1,15 +1,15 @@
-package concurrent.executor;
+package concurrent.executor.render;
 
 import java.util.List;
 import java.util.concurrent.*;
 
 /**
  * @Author: kkyeer
- * @Description: 并发下载/并发渲染，使用CompletionService
+ * @Description: 带有下载时间控制的并发下载/并发渲染，超过200ms的下载将被丢弃
  * @Date:Created in 16:30 2019/5/20
  * @Modified By:
  */
-class ConcDownInstantRenderer implements Renderer{
+class TimeLimitConcurrentRenderer implements Renderer{
     private ExecutorService downloadExecutorService = Executors.newFixedThreadPool(8);
 
     @Override
@@ -23,16 +23,21 @@ class ConcDownInstantRenderer implements Renderer{
                     () -> RenderUtils.downloadImage(imageUrl)
             );
         }
-
+        int timeoutCount =0;
+        int renderCount =0;
         for (int i=0;i<imageList.size();i++) {
             try {
-                RenderUtils.renderImage(imageCompletionService.take().get());
-            } catch (InterruptedException e) {
+                RenderUtils.renderImage(imageCompletionService.take().get(100,TimeUnit.MILLISECONDS));
+                renderCount++;
+            } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
-            } catch (ExecutionException e) {
+            } catch (TimeoutException e) {
+                timeoutCount++;
                 e.printStackTrace();
             }
         }
+        System.out.println("rendered:" + renderCount);
+        System.out.println("timeout:" + timeoutCount);
     }
 
 }
