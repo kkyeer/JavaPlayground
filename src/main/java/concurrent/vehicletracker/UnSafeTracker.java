@@ -1,6 +1,7 @@
 package concurrent.vehicletracker;
 
 import concurrent.annotations.GuardedBy;
+import concurrent.annotations.NotThreadSafe;
 import concurrent.annotations.ThreadSafe;
 
 import java.awt.*;
@@ -10,17 +11,17 @@ import java.util.Map;
 
 /**
  * @Author: kkyeer
- * @Description: 普通的汽车追踪器
+ * @Description: 不安全的
  * @Date:Created in 17:45 2019/5/6
  * @Modified By:
  */
-@ThreadSafe
-class NormalSafeTracker implements Tracker {
+@NotThreadSafe
+class UnSafeTracker implements Tracker {
     @GuardedBy("this")
     private Map<String,Point> locations;
 
-    NormalSafeTracker(Map<String, Point> locations){
-        this.locations = Collections.unmodifiableMap(locations);
+    UnSafeTracker(Map<String, Point> locations){
+        this.locations = locations;
     }
     /**
      * 获取所有的位置数据
