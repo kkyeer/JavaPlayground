@@ -1,4 +1,4 @@
-package concurrent.vehicletracker;
+package concurrent.monitorpattern;
 
 import java.awt.*;
 import java.util.Map;

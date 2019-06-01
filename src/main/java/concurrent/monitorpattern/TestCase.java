@@ -1,10 +1,9 @@
-package concurrent.vehicletracker;
+package concurrent.monitorpattern;
 
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Author: kkyeer
@@ -18,15 +17,17 @@ class TestCase {
     public static void main(String[] args) {
 
         Map<String, Point> initLocations = new HashMap<>();
-        Tracker tracker = new UnSafeTracker(initLocations);
+        Tracker tracker = new NormalSafeTracker(initLocations);
+        for (int i = 0; i < 100; i++) {
+            tracker.setLocation("v-" + i, new Point(i, i + 1));
+        }
         for (int i = 0; i < TEST_THREAD_COUNT; i++) {
             new Thread(
                     ()->{
-                        while (true) {
-                            Random random = new Random();
-                            int sleepTime = random.nextInt(10);
-                            System.out.println();
-                        }
+                        Random random = new Random();
+                        int toChangeIndex = random.nextInt(100);
+                        Point p = tracker.getLocation("v-" + toChangeIndex);
+                        p.setLocation(1000, 1000);
                     }
             ).start();
         }

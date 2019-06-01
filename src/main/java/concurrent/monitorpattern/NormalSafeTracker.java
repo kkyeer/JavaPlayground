@@ -1,12 +1,12 @@
-package concurrent.vehicletracker;
+package concurrent.monitorpattern;
 
 import concurrent.annotations.GuardedBy;
 import concurrent.annotations.ThreadSafe;
 
 import java.awt.*;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @Author: kkyeer
@@ -20,7 +20,8 @@ class NormalSafeTracker implements Tracker {
     private Map<String,Point> locations;
 
     NormalSafeTracker(Map<String, Point> locations){
-        this.locations = Collections.unmodifiableMap(locations);
+        this.locations = new ConcurrentHashMap<>();
+        this.locations.putAll(locations);
     }
     /**
      * 获取所有的位置数据
@@ -29,7 +30,7 @@ class NormalSafeTracker implements Tracker {
      */
     @Override
     public synchronized Map<String, Point> getLocations() {
-        return new HashMap<>(locations);
+        return Collections.unmodifiableMap(this.locations);
     }
 
     /**
@@ -51,6 +52,7 @@ class NormalSafeTracker implements Tracker {
      */
     @Override
     public synchronized void setLocation(String id, Point location) {
-        this.locations.put(id, location);
+        ImmutablePoint point = new ImmutablePoint(location);
+        this.locations.put(id, point);
     }
 }

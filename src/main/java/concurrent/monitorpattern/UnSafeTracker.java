@@ -1,11 +1,9 @@
-package concurrent.vehicletracker;
+package concurrent.monitorpattern;
 
 import concurrent.annotations.GuardedBy;
 import concurrent.annotations.NotThreadSafe;
-import concurrent.annotations.ThreadSafe;
 
 import java.awt.*;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
