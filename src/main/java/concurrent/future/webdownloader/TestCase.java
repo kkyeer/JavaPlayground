@@ -1,4 +1,4 @@
-package concurrent.future;
+package concurrent.future.webdownloader;
 
 import java.util.Map;
 import java.util.Optional;
@@ -12,7 +12,7 @@ import java.util.function.Function;
  * @Date:Created in 1:02 2019/5/17
  * @Modified By:
  */
-public class TestCase {
+class TestCase {
     public static void main(String[] args){
         WebDataLoader loader = new WebDataLoader();
         ExecutorService executorService = Executors.newFixedThreadPool(4);

@@ -1,4 +1,4 @@
-package concurrent.future;
+package concurrent.future.webdownloader;
 
 import java.util.HashMap;
 import java.util.Map;
