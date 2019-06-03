@@ -30,5 +30,3 @@ this是不同的对象，无法起到同步作用
 代码参考concurrent.classload.StaticMethodModifyStatic
 
 情况与构造器一样，必须使用第三方锁
-
-##
