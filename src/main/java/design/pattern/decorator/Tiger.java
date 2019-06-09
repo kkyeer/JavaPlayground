@@ -6,10 +6,10 @@ package design.pattern.decorator;
  * @Date:Created in 20:47 2019/6/5
  * @Modified By:
  */
-class Tiger implements Animal {
+class Tiger extends CatLike {
     private Animal wrappedAnimal;
 
-    public Tiger(Animal wrappedAnimal) {
+    Tiger(Animal wrappedAnimal) {
         this.wrappedAnimal = wrappedAnimal;
     }
 
@@ -19,7 +19,7 @@ class Tiger implements Animal {
         this.wrappedAnimal.eat();
     }
 
-    public void hunt(){
+    void hunt(){
         System.out.println("a tiger is hunting");
     }
 }

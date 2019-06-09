@@ -6,10 +6,10 @@ package design.pattern.decorator;
  * @Date:Created in 20:52 2019/6/5
  * @Modified By:
  */
-class HomeCat implements Animal{
+class HomeCat extends CatLike{
     private Animal wrappedAnimal;
 
-    public HomeCat(Animal wrappedAnimal) {
+    HomeCat(Animal wrappedAnimal) {
         this.wrappedAnimal = wrappedAnimal;
     }
 
