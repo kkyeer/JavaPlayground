@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author kk
  * @desc 有界缓存
  */
-public class BoundedBuffer<T> {
+ class BoundedBuffer<T> {
     private final Lock lock = new ReentrantLock();
     private final Condition notFull = lock.newCondition();
     private final Condition notEmpty = lock.newCondition();

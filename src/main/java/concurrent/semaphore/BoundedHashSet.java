@@ -11,8 +11,14 @@ import java.util.concurrent.Semaphore;
  * @Modified By:
  */
 class BoundedHashSet<E>{
+    /**
+     * 实际使用HashSet存储
+     */
     private Set<E> set = new HashSet<>();
 
+    /**
+     * 内部使用Semaphore信号量来进行并发控制
+     */
     private Semaphore semaphore;
 
     BoundedHashSet(int maxSize) {

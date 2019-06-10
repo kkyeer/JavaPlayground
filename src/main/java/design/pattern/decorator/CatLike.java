@@ -6,7 +6,7 @@ package design.pattern.decorator;
  * @Date:Created in 20:45 2019/6/5
  * @Modified By:
  */
-abstract class CatLike implements Animal {
+class CatLike implements Animal {
     @Override
     public void eat() {
         System.out.println("Eat with front claws");
