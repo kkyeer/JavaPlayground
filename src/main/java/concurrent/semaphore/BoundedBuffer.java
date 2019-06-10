@@ -1,55 +1,22 @@
 package concurrent.semaphore;
 
-import java.util.concurrent.Semaphore;
-
 /**
  * @Author: kkyeer
  * @Description: 大小有限制的缓存，阻塞式IO
  * @Date:Created in 11:09 2019/6/9
  * @Modified By:
  */
-class BoundedBuffer<E> {
-    private E[] dataArray;
-    private int takePosition,putPosition;
-    private final Semaphore availableItems,availableSpace;
+interface BoundedBuffer<E> {;
 
-    BoundedBuffer(int size) {
-        dataArray = (E[]) new Object[size];
-        availableItems = new Semaphore(0);
-        availableSpace = new Semaphore(size);
-    }
+    void put(E ele) throws InterruptedException;
 
-    public void put(E ele) throws InterruptedException {
-        availableSpace.acquire();
-        dataArray[putPosition] = ele;
-        if (++putPosition == dataArray.length) {
-            putPosition = 0;
-        }
-        availableItems.release();
-    }
+    E take()  throws InterruptedException;
 
-    public E take() throws InterruptedException {
-        availableItems.acquire();
-        if (++takePosition == dataArray.length) {
-            takePosition = 0;
-        }
-        availableSpace.release();
-        return dataArray[takePosition];
-    }
+    boolean isFull();
 
-    public boolean isFull(){
-        return availableSpace.availablePermits() == 0;
-    }
+    boolean isEmpty();
 
-    public boolean isEmpty(){
-        return availableItems.availablePermits() == 0;
-    }
+    int availableSpace();
 
-    public int availableSpace(){
-        return availableSpace.availablePermits();
-    }
-
-    public int availableItemCount(){
-        return availableSpace.availablePermits();
-    }
+    int availableItemCount();
 }
