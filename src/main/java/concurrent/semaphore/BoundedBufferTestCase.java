@@ -2,6 +2,8 @@ package concurrent.semaphore;
 
 import utils.Assertions;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -47,18 +49,20 @@ class BoundedBufferTestCase {
         int testThreadCount = Runtime.getRuntime().availableProcessors() + 1;
         // 可以循环利用
         CyclicBarrier cyclicBarrier = new CyclicBarrier(2 * testThreadCount+1);
-        AtomicInteger addSum = new AtomicInteger(0);
-        AtomicInteger takeSum = new AtomicInteger(0);
+        ExecutorService executorService = Executors.newFixedThreadPool(testThreadCount*2);
+        List<Future<Integer>> producerFutureList = new ArrayList<>(testThreadCount);
+        List<Future<Integer>> consumerFutureList = new ArrayList<>(testThreadCount);
         for (int i = 0; i < testThreadCount; i++) {
-            new Thread(
+            Future<Integer> producerSumFuture = executorService.submit(
                     ()->{
+                        int sum = 0;
                         // producer
                         try {
                             cyclicBarrier.await();
                             int seed = (1<<8)^(int) System.nanoTime();
                             for (int j = 0; j < testTimesPerThread; j++) {
                                 boundedBuffer.put(seed);
-                                addSum.getAndAdd(seed);
+                                sum+=seed;
                                 seed = xorShift(seed);
                             }
                             cyclicBarrier.await();
@@ -67,17 +71,19 @@ class BoundedBufferTestCase {
                         } catch (BrokenBarrierException e) {
                             e.printStackTrace();
                         }
-
+                        return sum;
                     }
-            ).start();
-            new Thread(
+            );
+            producerFutureList.add(producerSumFuture);
+            Future<Integer> consumerSumFuture = executorService.submit(
                     () -> {
+                        int sum = 0;
                         // consumer
                         try {
                             cyclicBarrier.await();
                             for (int j = 0; j < testTimesPerThread; j++) {
                                 int value = boundedBuffer.take();
-                                takeSum.getAndAdd(value);
+                                sum+=value;
                             }
                             cyclicBarrier.await();
                         } catch (InterruptedException e) {
@@ -85,17 +91,30 @@ class BoundedBufferTestCase {
                         } catch (BrokenBarrierException e) {
                             e.printStackTrace();
                         }
-
+                        return sum;
                     }
-            ).start();
+            );
+            consumerFutureList.add(consumerSumFuture);
         }
         try {
             // Start all Thread
             cyclicBarrier.await();
             // end all Thread
             cyclicBarrier.await();
-            Assertions.assertTrue(addSum.get()==takeSum.get());
+            // calc sum and validate
+            int producerSum = 0;
+            for (Future<Integer> integerFuture : producerFutureList) {
+                producerSum+=integerFuture.get();
+            }
+            int consumerSum = 0;
+            for (Future<Integer> integerFuture : consumerFutureList) {
+                consumerSum+=integerFuture.get();
+            }
+            Assertions.assertTrue(producerSum == consumerSum);
+            executorService.shutdown();
         } catch (BrokenBarrierException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
             e.printStackTrace();
         }
 

@@ -37,9 +37,11 @@ class SafeBoundedBuffer<E> implements BoundedBuffer<E>{
         E elem;
         synchronized (this){
             elem = dataArray[takePosition];
+            dataArray[takePosition] = null;
             if (++takePosition == dataArray.length) {
                 takePosition = 0;
             }
+
         }
         availableSpace.release();
         return elem;
