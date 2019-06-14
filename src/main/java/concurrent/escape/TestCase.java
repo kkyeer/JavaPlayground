@@ -8,6 +8,8 @@ package concurrent.escape;
  */
 public class TestCase {
     private final String NAME="TEST ESCAPE";
+    // 构造器中的线程，某些变量尚未实例化完成，因此产生引用逃逸
+    // https://www.linuxidc.com/wap.aspx?nid=153334
     public TestCase(){
         new Thread(()-> {
             System.out.println("Child:"+this.hashCode());

@@ -45,7 +45,7 @@ class BoundedBufferTestCase {
      * @throws InterruptedException 抛出异常
      */
     private static void testConcurrentCorrectness(BoundedBuffer<Integer>  boundedBuffer) throws InterruptedException {
-        int testTimesPerThread = 100;
+        int testTimesPerThread = 1000;
         int testThreadCount = Runtime.getRuntime().availableProcessors() + 1;
         // 可以循环利用
         CyclicBarrier cyclicBarrier = new CyclicBarrier(2 * testThreadCount+1);
