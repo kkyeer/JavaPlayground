@@ -1,8 +1,7 @@
 import java.io.IOException;
-import java.io.InputStream;
+import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
-import java.net.Inet4Address;
-import java.net.URL;
+import java.lang.management.ThreadMXBean;
 
 /**
  * @Author: kkyeer
@@ -10,16 +9,9 @@ import java.net.URL;
  * @Date:Created in 21:00 2018/12/18
  * @Modified By:
  */
+
 public class Playground {
-
     public static void main(String[] args) throws IOException {
-    }
 
-    static void netBasic() throws IOException{
-        Inet4Address inet4Address = (Inet4Address) Inet4Address.getLocalHost();
-        System.out.println(inet4Address.getHostAddress());
-        URL baiduUrl = new URL("http://www.baidu.com");
-        System.out.println(baiduUrl.getProtocol());
-        InputStream inputStream = baiduUrl.openStream();
     }
 }
