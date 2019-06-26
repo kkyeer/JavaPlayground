@@ -13,6 +13,12 @@ class NovelWriter extends AbstractWriter {
     }
 
     @Override
+    protected void beforeWrite() {
+        super.beforeWrite();
+        System.out.println("构思小说");
+    }
+
+    @Override
     protected void writeContent() {
         System.out.println("小说正文");
     }

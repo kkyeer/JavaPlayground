@@ -10,9 +10,17 @@ abstract class AbstractWriter {
     protected String name;
     private int price;
 
+
     AbstractWriter(String name, int price) {
         this.name = name;
         this.price = price;
+    }
+
+    /**
+     * 钩子函数，写作前
+     */
+    protected void beforeWrite(){
+
     }
 
     /**
@@ -38,6 +46,7 @@ abstract class AbstractWriter {
      * 写作方法
      */
     void write(){
+        beforeWrite();
         writeHeader();
         writeContent();
         writeFooter();
