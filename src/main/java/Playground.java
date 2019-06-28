@@ -1,7 +1,6 @@
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @Author: kkyeer
@@ -11,7 +10,7 @@ import java.lang.management.ThreadMXBean;
  */
 
 public class Playground {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
     }
 }
