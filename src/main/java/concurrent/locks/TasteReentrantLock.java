@@ -1,5 +1,7 @@
 package concurrent.locks;
 
+import concurrent.ConcurrentTest;
+
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -14,37 +16,20 @@ import java.util.concurrent.locks.ReentrantLock;
  * @Modified By:
  */
 class TasteReentrantLock {
-    public static void main(String[] args) throws BrokenBarrierException, InterruptedException {
+    public static void main(String[] args){
         ReentrantLock reentrantLock = new ReentrantLock();
-        final int TEST_THREAD_COUNT = 8;
-        ExecutorService executorService = Executors.newFixedThreadPool(TEST_THREAD_COUNT);
-        CyclicBarrier barrier = new CyclicBarrier(TEST_THREAD_COUNT + 1);
-        for (int i = 0; i < TEST_THREAD_COUNT; i++) {
-            executorService.submit(
-                    () -> {
-                        try {
-                            barrier.await();
-                            System.out.println("before");
-                            reentrantLock.lock();
-                            Random random = new Random();
-                            int testNum = random.nextInt(1000);
-                            if (testNum < 500) {
-                                throw new RuntimeException("Random exception");
-                            }
-                            System.out.println("Over");
-                            barrier.await();
-                        } catch (InterruptedException | BrokenBarrierException e) {
-                            e.printStackTrace();
-                        } finally {
-                            reentrantLock.unlock();
-
-                        }
+        ConcurrentTest.test(
+                ()->{
+                    System.out.println("before");
+                    reentrantLock.lock();
+                    Random random = new Random();
+                    int testNum = random.nextInt(1000);
+                    if (testNum < 500) {
+                        throw new RuntimeException("Random exception");
                     }
-            );
-        }
-        barrier.await();
-        barrier.await();
-        System.out.println("Should all be done.");
-
+                    System.out.println("Over");
+                    reentrantLock.unlock();
+                }
+        );
     }
 }
