@@ -15,7 +15,7 @@ import java.lang.management.ThreadMXBean;
 class TasteThreadInfo {
     public static void main(String[] args) throws IOException {
         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        String lockA = "lockA";
+        String lockA = "lock";
         String lockB = "lockB";
         class Transfer implements Runnable {
             private Object lock1;
@@ -58,7 +58,7 @@ class TasteThreadInfo {
         String a2bBlockLock = a2bInfo.getLockInfo().getIdentityHashCode() == System.identityHashCode(lockB) ? "lockB" : "unknown";
         System.out.println("a2b lock:" + a2bBlockLock);
         b2aInfo = threadMXBean.getThreadInfo(b2aId);
-        String b2aBlockLock = b2aInfo.getLockInfo().getIdentityHashCode() == System.identityHashCode(lockA) ? "lockA" : "unknown";
+        String b2aBlockLock = b2aInfo.getLockInfo().getIdentityHashCode() == System.identityHashCode(lockA) ? "lock" : "unknown";
         System.out.println("b2a lock:" + b2aBlockLock);
     }
 }
