@@ -1,11 +1,10 @@
-package concurrent.semaphore;
+package concurrent.boundedbuffer;
 
 import utils.Assertions;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Author: kkyeer
@@ -14,24 +13,24 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @Modified By:
  */
 class BoundedBufferTestCase {
-    private static final int BUFFER_SIZE = 100;
+    static final int BUFFER_SIZE = 100;
     public static void main(String[] args) throws InterruptedException {
         BoundedBuffer<String> boundedBuffer = new NotSafeBoundedBuffer<>(BUFFER_SIZE);
 //        testFullAndEmptySequential(boundedBuffer);
 //        testFullAndEmptyConcurrently(boundedBuffer);
 //        testBlockPutWhenFull(boundedBuffer);
 //        testBlockTakeWhenEmpty(boundedBuffer);
-//        testConcurrentCorrectness(new SafeBoundedBuffer<>(BUFFER_SIZE));
+//        testConcurrentCorrectness(new SafeBoundedBufferWithIntrinsicLock<>(BUFFER_SIZE));
 //        testConcurrentCorrectness(new NotSafeBoundedBuffer<>(BUFFER_SIZE));
         testPerformance();
     }
 
-    private static void testPerformance() throws InterruptedException {
+    static void testPerformance() throws InterruptedException {
         BoundedBuffer<Integer> boundedBuffer;
         int count = 100 * (Runtime.getRuntime().availableProcessors() + 1);
         for (int i = 10; i <= 10000; i*=10) {
             long start = System.nanoTime();
-            boundedBuffer = new SafeBoundedBuffer<>(i);
+            boundedBuffer = new SafeBoundedBufferWithIntrinsicLock<>(i);
             testConcurrentCorrectness(boundedBuffer);
             long duration = System.nanoTime()-start;
             int throughput = (int) (duration/count);
@@ -44,7 +43,7 @@ class BoundedBufferTestCase {
      * @param boundedBuffer 有界缓存
      * @throws InterruptedException 抛出异常
      */
-    private static void testConcurrentCorrectness(BoundedBuffer<Integer>  boundedBuffer) throws InterruptedException {
+    static void testConcurrentCorrectness(BoundedBuffer<Integer>  boundedBuffer) throws InterruptedException {
         int testTimesPerThread = 1000;
         int testThreadCount = Runtime.getRuntime().availableProcessors() + 1;
         // 可以循环利用
@@ -111,6 +110,7 @@ class BoundedBufferTestCase {
                 consumerSum+=integerFuture.get();
             }
             Assertions.assertTrue(producerSum == consumerSum);
+            System.out.println("Pass test");
             executorService.shutdown();
         } catch (BrokenBarrierException e) {
             e.printStackTrace();
@@ -125,7 +125,7 @@ class BoundedBufferTestCase {
      * @param boundedBuffer 缓存
      * @throws InterruptedException 异常
      */
-    private static void testBlockTakeWhenEmpty(BoundedBuffer<String> boundedBuffer) throws InterruptedException {
+    static void testBlockTakeWhenEmpty(BoundedBuffer<String> boundedBuffer) throws InterruptedException {
         Thread testThread= new Thread(
                 ()->{
                     try {
@@ -148,7 +148,7 @@ class BoundedBufferTestCase {
      * @param boundedBuffer 缓存
      * @throws InterruptedException 异常
      */
-    private static void testBlockPutWhenFull(BoundedBuffer<String> boundedBuffer) throws InterruptedException {
+    static void testBlockPutWhenFull(BoundedBuffer<String> boundedBuffer) throws InterruptedException {
         for (int i = 0; i < BUFFER_SIZE; i++) {
             boundedBuffer.put("" + i);
         }
@@ -173,7 +173,7 @@ class BoundedBufferTestCase {
      * 并发测试是否能准确判断空与满的状态
      * @throws InterruptedException 抛出异常
      */
-    private static void testFullAndEmptyConcurrently(BoundedBuffer<String> boundedBuffer) throws InterruptedException, BrokenBarrierException {
+    static void testFullAndEmptyConcurrently(BoundedBuffer<String> boundedBuffer) throws InterruptedException, BrokenBarrierException {
         CyclicBarrier startCyclicBarrier = new CyclicBarrier(BUFFER_SIZE+1);
         for (int i = 0; i < BUFFER_SIZE; i++) {
             new Thread(
@@ -182,7 +182,6 @@ class BoundedBufferTestCase {
                             startCyclicBarrier.await();
                             Thread.sleep(10);
                             boundedBuffer.put("a");
-                            System.out.println("put");
                             startCyclicBarrier.await();
                         } catch (InterruptedException | BrokenBarrierException e) {
                             e.printStackTrace();
@@ -191,11 +190,9 @@ class BoundedBufferTestCase {
             ).start();
         }
         startCyclicBarrier.await();
-        System.out.println("--------------after put------------");
+        startCyclicBarrier.await();
         Assertions.assertTrue(!boundedBuffer.isEmpty());
         Assertions.assertTrue(boundedBuffer.isFull());
-        startCyclicBarrier.reset();
-        CountDownLatch endLatch2 = new CountDownLatch(BUFFER_SIZE);
         for (int i = 0; i < BUFFER_SIZE; i++) {
             new Thread(
                     ()->{
@@ -203,25 +200,29 @@ class BoundedBufferTestCase {
                             startCyclicBarrier.await();
                             Thread.sleep(10);
                             boundedBuffer.take();
-                            System.out.println("take");
                         } catch (InterruptedException | BrokenBarrierException e) {
                             e.printStackTrace();
                         }
-                        endLatch2.countDown();
+                        try {
+                            startCyclicBarrier.await();
+                        } catch (InterruptedException | BrokenBarrierException e) {
+                            e.printStackTrace();
+                        }
                     }
             ).start();
         }
-        endLatch2.await();
-        System.out.println("---------------after take------------");
+        startCyclicBarrier.await();
+        startCyclicBarrier.await();
         Assertions.assertTrue(!boundedBuffer.isFull());
         Assertions.assertTrue(boundedBuffer.isEmpty());
+        System.out.println("Passed");
     }
 
     /**
      * 线性测试是否能准确判断空与满的状态
      * @throws InterruptedException 抛出异常
      */
-    private static void testFullAndEmptySequential(BoundedBuffer<String> boundedBuffer) throws InterruptedException {
+    static void testFullAndEmptySequential(BoundedBuffer<String> boundedBuffer) throws InterruptedException {
         System.out.println("--------------before put");
         Assertions.assertTrue(boundedBuffer.isEmpty());
         Assertions.assertTrue(!boundedBuffer.isFull());
@@ -244,7 +245,7 @@ class BoundedBufferTestCase {
      * @param y 种子
      * @return 随机数
      */
-    private static int xorShift(int y) {
+    static int xorShift(int y) {
         y ^= (y << 6);
         y ^= (y >>> 21);
         y ^= (y << 7);

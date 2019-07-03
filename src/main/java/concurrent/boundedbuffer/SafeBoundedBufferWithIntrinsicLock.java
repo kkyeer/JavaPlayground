@@ -1,4 +1,4 @@
-package concurrent.semaphore;
+package concurrent.boundedbuffer;
 
 import java.util.concurrent.Semaphore;
 
@@ -8,12 +8,12 @@ import java.util.concurrent.Semaphore;
  * @Date:Created in 11:09 2019/6/9
  * @Modified By:
  */
-class NotSafeBoundedBuffer<E> implements BoundedBuffer<E>{
+class SafeBoundedBufferWithIntrinsicLock<E> implements BoundedBuffer<E>{
     private E[] dataArray;
     private int takePosition,putPosition;
     private final Semaphore availableItems,availableSpace;
 
-    NotSafeBoundedBuffer(int size) {
+    SafeBoundedBufferWithIntrinsicLock(int size) {
         dataArray = (E[]) new Object[size];
         availableItems = new Semaphore(0);
         availableSpace = new Semaphore(size);
@@ -22,9 +22,11 @@ class NotSafeBoundedBuffer<E> implements BoundedBuffer<E>{
     @Override
     public void put(E ele) throws InterruptedException {
         availableSpace.acquire();
-        dataArray[putPosition] = ele;
-        if (++putPosition == dataArray.length) {
-            putPosition = 0;
+        synchronized (this){
+            dataArray[putPosition] = ele;
+            if (++putPosition == dataArray.length) {
+                putPosition = 0;
+            }
         }
         availableItems.release();
     }
@@ -32,9 +34,14 @@ class NotSafeBoundedBuffer<E> implements BoundedBuffer<E>{
     @Override
     public E take() throws InterruptedException {
         availableItems.acquire();
-        E elem = dataArray[takePosition];
-        if (++takePosition == dataArray.length) {
-            takePosition = 0;
+        E elem;
+        synchronized (this){
+            elem = dataArray[takePosition];
+            dataArray[takePosition] = null;
+            if (++takePosition == dataArray.length) {
+                takePosition = 0;
+            }
+
         }
         availableSpace.release();
         return elem;

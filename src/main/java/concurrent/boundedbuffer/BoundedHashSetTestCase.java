@@ -1,4 +1,4 @@
-package concurrent.semaphore;
+package concurrent.boundedbuffer;
 
 import java.util.Random;
 import java.util.concurrent.*;
