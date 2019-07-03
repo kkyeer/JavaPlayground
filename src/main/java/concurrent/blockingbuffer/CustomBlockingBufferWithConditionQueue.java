@@ -1,8 +1,8 @@
-package concurrent.boundedbuffer;
+package concurrent.blockingbuffer;
 
 import java.util.concurrent.BrokenBarrierException;
 
-import static concurrent.boundedbuffer.BlockingBufferTestCase.*;
+import static concurrent.blockingbuffer.BlockingBufferTestCase.*;
 
 /**
  * @Author: kkyeer

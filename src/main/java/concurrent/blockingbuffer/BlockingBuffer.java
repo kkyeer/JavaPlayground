@@ -1,4 +1,4 @@
-package concurrent.boundedbuffer;
+package concurrent.blockingbuffer;
 
 /**
  * @Author: kkyeer

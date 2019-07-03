@@ -1,4 +1,4 @@
-package concurrent.boundedbuffer;
+package concurrent.blockingbuffer;
 
 import java.util.Random;
 import java.util.concurrent.*;
