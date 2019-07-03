@@ -6,7 +6,7 @@ package concurrent.boundedbuffer;
  * @Date:Created in 11:09 2019/6/9
  * @Modified By:
  */
-interface BoundedBuffer<E> {;
+interface BlockingBuffer<E> {;
 
     void put(E ele) throws InterruptedException;
 

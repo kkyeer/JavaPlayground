@@ -24,7 +24,7 @@ class BoundedHashSetTestCase {
 
     public static void main(String[] args) {
         CountDownLatch startLatch = new CountDownLatch(1);
-        BoundedHashSet<Integer> boundedHashSet = new BoundedHashSet<>(20);
+        BlockingHashSet<Integer> blockingHashSet = new BlockingHashSet<>(20);
         BlockingDeque<Integer> added = new LinkedBlockingDeque<>();
         // 生产者计数
         AtomicInteger producerCount = new AtomicInteger(0);
@@ -44,9 +44,9 @@ class BoundedHashSetTestCase {
             producerExecutor.execute(() -> {
                 while (producerCount.addAndGet(1) < SHUT_DOWN_THRESHOLD) {
                     int nextInt = 1000 + random.nextInt(1000);
-                    boundedHashSet.add(nextInt);
+                    blockingHashSet.add(nextInt);
                     added.add(nextInt);
-                    System.out.println("added:" + nextInt + ",size:" + boundedHashSet.getSize());
+                    System.out.println("added:" + nextInt + ",size:" + blockingHashSet.getSize());
                     try {
                         Thread.sleep(nextInt);
                     } catch (InterruptedException e) {
@@ -63,7 +63,7 @@ class BoundedHashSetTestCase {
             consumerExecutor.execute(() -> {
                         while (consumerCount.addAndGet(1) < SHUT_DOWN_THRESHOLD) {
                             int toRemove = added.remove();
-                            boundedHashSet.remove(toRemove);
+                            blockingHashSet.remove(toRemove);
                             System.out.println("consumed 1 number");
                             int nextInt = 5000 + random.nextInt(3000);
                             try {

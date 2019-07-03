@@ -10,7 +10,7 @@ import java.util.concurrent.Semaphore;
  * @Date:Created in 20:22 2019/5/17
  * @Modified By:
  */
-class BoundedHashSet<E>{
+class BlockingHashSet<E>{
     /**
      * 实际使用HashSet存储
      */
@@ -21,7 +21,7 @@ class BoundedHashSet<E>{
      */
     private Semaphore semaphore;
 
-    BoundedHashSet(int maxSize) {
+    BlockingHashSet(int maxSize) {
         this.semaphore = new Semaphore(maxSize);
     }
 

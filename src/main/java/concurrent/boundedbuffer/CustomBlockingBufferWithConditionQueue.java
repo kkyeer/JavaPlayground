@@ -2,7 +2,7 @@ package concurrent.boundedbuffer;
 
 import java.util.concurrent.BrokenBarrierException;
 
-import static concurrent.boundedbuffer.BoundedBufferTestCase.*;
+import static concurrent.boundedbuffer.BlockingBufferTestCase.*;
 
 /**
  * @Author: kkyeer
@@ -10,13 +10,13 @@ import static concurrent.boundedbuffer.BoundedBufferTestCase.*;
  * @Date:Created in 17:31 2019/7/3
  * @Modified By:
  */
-class CustomBoundedBufferWithConditionQueue<E> implements BoundedBuffer<E>{
+class CustomBlockingBufferWithConditionQueue<E> implements BlockingBuffer<E> {
     private final E[] array;
     final int boundSize;
     private int currentSize;
     private int takePosition,putPosition;
 
-    public CustomBoundedBufferWithConditionQueue(int boundSize) {
+    public CustomBlockingBufferWithConditionQueue(int boundSize) {
         this.array = (E[]) new Object[boundSize];
         takePosition = 0;
         putPosition = 0;
@@ -72,13 +72,13 @@ class CustomBoundedBufferWithConditionQueue<E> implements BoundedBuffer<E>{
     }
 
     public static void main(String[] args) throws InterruptedException, BrokenBarrierException {
-        BoundedBuffer<String> boundedBuffer = new CustomBoundedBufferWithConditionQueue<>(BUFFER_SIZE);
-        testBlockPutWhenFull(boundedBuffer);
-        boundedBuffer = new CustomBoundedBufferWithConditionQueue<>(BUFFER_SIZE);
-        testBlockTakeWhenEmpty(boundedBuffer);
-        boundedBuffer = new CustomBoundedBufferWithConditionQueue<>(BUFFER_SIZE);
-        testFullAndEmptyConcurrently(boundedBuffer);
-        BoundedBuffer<Integer> integerBoundedBuffer = new CustomBoundedBufferWithConditionQueue<>(BUFFER_SIZE);
-        testConcurrentCorrectness(integerBoundedBuffer);
+        BlockingBuffer<String> blockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        testBlockPutWhenFull(blockingBuffer);
+        blockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        testBlockTakeWhenEmpty(blockingBuffer);
+        blockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        testFullAndEmptyConcurrently(blockingBuffer);
+        BlockingBuffer<Integer> integerBlockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        testConcurrentCorrectness(integerBlockingBuffer);
     }
 }
