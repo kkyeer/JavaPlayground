@@ -8,7 +8,7 @@ import java.util.concurrent.BrokenBarrierException;
  * @Date:Created in 22:59 2019/7/3
  * @Modified By:
  */
-class ThreadGateImpl implements ThreadGate{
+class ThreadGateWithIntrinsicConditionQueue implements ThreadGate{
     volatile int state = 0;
     /**
      * 使用version来控制，原因是，理论上，此门的作用为：当开门时，所有已经在等待门开的线程全部放过
@@ -49,6 +49,6 @@ class ThreadGateImpl implements ThreadGate{
     }
 
     public static void main(String[] args) throws InterruptedException, BrokenBarrierException {
-        TestCase.test(new ThreadGateImpl());
+        TestCase.test(new ThreadGateWithIntrinsicConditionQueue());
     }
 }

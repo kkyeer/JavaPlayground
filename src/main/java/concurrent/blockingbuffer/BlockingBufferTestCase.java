@@ -30,7 +30,7 @@ class BlockingBufferTestCase {
         int count = 100 * (Runtime.getRuntime().availableProcessors() + 1);
         for (int i = 10; i <= 10000; i*=10) {
             long start = System.nanoTime();
-            blockingBuffer = new SafeBlockingBufferWithIntrinsicLock<>(i);
+            blockingBuffer = new BlockingBufferWithIntrinsicConditionQueue<>(i);
             testConcurrentCorrectness(blockingBuffer);
             long duration = System.nanoTime()-start;
             int throughput = (int) (duration/count);

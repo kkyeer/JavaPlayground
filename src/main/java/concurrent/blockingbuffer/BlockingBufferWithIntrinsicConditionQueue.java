@@ -10,13 +10,13 @@ import static concurrent.blockingbuffer.BlockingBufferTestCase.*;
  * @Date:Created in 17:31 2019/7/3
  * @Modified By:
  */
-class CustomBlockingBufferWithConditionQueue<E> implements BlockingBuffer<E> {
+class BlockingBufferWithIntrinsicConditionQueue<E> implements BlockingBuffer<E> {
     private final E[] array;
     final int boundSize;
     private int currentSize;
     private int takePosition,putPosition;
 
-    public CustomBlockingBufferWithConditionQueue(int boundSize) {
+    public BlockingBufferWithIntrinsicConditionQueue(int boundSize) {
         this.array = (E[]) new Object[boundSize];
         takePosition = 0;
         putPosition = 0;
@@ -72,13 +72,13 @@ class CustomBlockingBufferWithConditionQueue<E> implements BlockingBuffer<E> {
     }
 
     public static void main(String[] args) throws InterruptedException, BrokenBarrierException {
-        BlockingBuffer<String> blockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        BlockingBuffer<String> blockingBuffer = new BlockingBufferWithIntrinsicConditionQueue<>(BUFFER_SIZE);
         testBlockPutWhenFull(blockingBuffer);
-        blockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        blockingBuffer = new BlockingBufferWithIntrinsicConditionQueue<>(BUFFER_SIZE);
         testBlockTakeWhenEmpty(blockingBuffer);
-        blockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        blockingBuffer = new BlockingBufferWithIntrinsicConditionQueue<>(BUFFER_SIZE);
         testFullAndEmptyConcurrently(blockingBuffer);
-        BlockingBuffer<Integer> integerBlockingBuffer = new CustomBlockingBufferWithConditionQueue<>(BUFFER_SIZE);
+        BlockingBuffer<Integer> integerBlockingBuffer = new BlockingBufferWithIntrinsicConditionQueue<>(BUFFER_SIZE);
         testConcurrentCorrectness(integerBlockingBuffer);
     }
 }
