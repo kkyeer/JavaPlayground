@@ -32,9 +32,9 @@ class BlockingBufferTestCase {
             long start = System.nanoTime();
             blockingBuffer = new BlockingBufferWithIntrinsicConditionQueue<>(i);
             testConcurrentCorrectness(blockingBuffer);
-            long duration = System.nanoTime()-start;
-            int throughput = (int) (duration/count);
-            System.out.println("Buffer size["+i+"],average throughput "+throughput+" nano second per data ");
+            long duration = System.nanoTime() - start;
+            int throughput = (int) (duration / count);
+            System.out.println("Buffer size[" + i + "],average throughput " + throughput + " nano second per data ");
         }
     }
 
@@ -65,9 +65,7 @@ class BlockingBufferTestCase {
                                 seed = xorShift(seed);
                             }
                             cyclicBarrier.await();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        } catch (BrokenBarrierException e) {
+                        } catch (InterruptedException | BrokenBarrierException e) {
                             e.printStackTrace();
                         }
                         return sum;
@@ -112,9 +110,7 @@ class BlockingBufferTestCase {
             Assertions.assertTrue(producerSum == consumerSum);
             System.out.println("Pass test");
             executorService.shutdown();
-        } catch (BrokenBarrierException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
+        } catch (BrokenBarrierException | ExecutionException e) {
             e.printStackTrace();
         }
 
