@@ -19,9 +19,7 @@ import java.util.concurrent.Executors;
 class TestCase {
     static void test(Class<? extends Stack> stackClass) {
         testConcurrentWrite(stackClass);
-        System.out.println("并发写测试通过");
         testConcurrentReadWrite(stackClass);
-        System.out.println("并发读写测试通过");
         testPerformance(stackClass);
     }
     /**
@@ -61,6 +59,7 @@ class TestCase {
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
+        System.out.println("并发写测试通过");
     }
 
     /**
@@ -116,6 +115,7 @@ class TestCase {
         } catch (InstantiationException | IllegalAccessException | InterruptedException | BrokenBarrierException e) {
             e.printStackTrace();
         }
+        System.out.println("并发读写测试通过");
     }
 
     /**
@@ -168,5 +168,24 @@ class TestCase {
             System.out.println("平均：" + (sumTime / TEST_REPEAT_TIMES / 1000000) + "毫秒");
             COUNT_PER_THREAD *= 10;
         }
+    }
+
+//    TODO 测试用例
+    /**
+     * 测试是否具有ABA问题
+     * ABA问题，是指某线程在进行CAS操作前，锁定值为A，此后另外一个线程将值替换为B，然后再替换回A，此后A线程若执行CAS
+     * 操作，是可以执行成功的，但是实际上由于已经发生过变化，因此有发生潜在问题的可能性
+     * 具体到CAS实现的栈中，若使用普通CAS操作，考虑如下情况
+     * 某个栈当前状态为 A->NULL 即栈当前状态为只有一个元素A，且栈顶为A，此时有两个线程执行如下操作
+     * 线程1：PUSH(B)
+     * 线程2：POP() -> PUSH(C) -> PUSH(A)
+     * 由于多线程并发执行的原因，假设实际的执行情况为
+     * 线程1：锁定栈顶为A------------------------------------------------------------>PUSH(B),由于CAS判断此时栈顶仍旧为A,因此CAS成功，栈变为B->A->NULL，C元素从栈中消失
+     * 线程2：           锁定栈顶为A->POP()->PUSH(C)->PUSH(A)->成功，栈变为A->C-NULL
+     * 测试思路：
+     * @param stackClass 要测试的类的Class对象
+     */
+    static void testABAProblem(Class<? extends Stack> stackClass) {
+
     }
 }
