@@ -4,8 +4,7 @@
 
 ### 1.1 测试代码
 
-完整代码参见concurrent.reorder.Reveal
-关键代码如下：
+完整代码参见[Github](https://github.com/kkyeer/JavaPlayground/blob/master/src/main/java/concurrent/reorder/Reveal.java)，其中关键代码如下：
 
 ```java
 Thread thread1 = new Thread(
@@ -142,7 +141,7 @@ test2方法内部CPU指令简写为:
 
 - S4: MOV[b, 1]
 - S5: MOV[r2, a]
-- S6: MOV[x, r2]
+- S6: MOV[y, r2]
 
 后面的程序均围绕此程序展开
 
@@ -159,7 +158,7 @@ CPU指令重排序的定义为：CPU允许在**某些条件**下进行**指令�
 
 #### 2.3.2 指令重排序
 
-假设一个线程执行2.3.0中程序的test1()方法，由于S1为Store指令，S2为Load指令，且涉及的外存变量不同，根据2.3.1的说明，允许发生重排序，即允许指令执行顺序为**S2 -> S1 -> S3**,类似的test2()方法可被重排序为**S5 -> S4 -> S6**
+假设一个线程执行2.3.0中程序的test1()方法，由于S1为Store指令，S2为Load指令，且涉及的外存变量不同，根据2.3.1的说明，允许发生重排序，即允许指令执行顺序为**S2 -> S1 -> S3**,注意,由于S3语句中r1的值只跟S2位置有关，因此，重排序后的语句执行效果类似```x=b;a=1;```,类似的test2()方法可被重排序为**S5 -> S4 -> S6**，执行效果看上去像```y=a;b=1;```，注意，这里的看上去像仅仅是指最终执行顺序看上去的样子
 
 #### 2.3.3 重排序后单线程下的语义一致
 
@@ -178,25 +177,49 @@ CPU指令重排序的定义为：CPU允许在**某些条件**下进行**指令�
 ||S4( MOV[b, 1] )|0|0|0|0|1|1|
 ||S6( MOV[x, r2] )|0|0|0|0|1|1|
 
-在这种情况下，最终x=0;y=0;这就是1.3中出现反直觉的结果的原因
+在这种情况下，最终x=0;y=0;这就是1.3中出现反直觉的结果的原因，最终展现出的效果就类似下面的表格，看上去是两个线程的代码进行了重排序
+
+|线程1|线程2|x| y|
+|-|-|-|-|
+|y=b;||0|0|
+||x=a;|0|0|
+|a=1;||0|0|
+||b=1;|0|0|
 
 ## 3. 如何避免多线程程序中指令重排序造成的错误
 
 ### 3.1 Java内存模型（JMM）
 
-JVM运行时，机器码会操作对应的CPU进行缓存，JMM规定了一系列Java代码与内存交互中的原则，如happens-before,serial-as-if原则等
+为了保证JVM的跨平台性，把Java业务代码与操作系统或硬件的指令解耦，JSR规定了一系列Java代码在多线程程序中与内存交互中的原则，如happens-before原则,serial-as-if原则，JVM实现必须遵循这些原则，同时，没有在JSR133中禁止的指令重排序、优化等等均是被允许的
 
-### 2.4 JMM的happens-before原则
+#### 3.1.1 JMM的happens-before原则
+
+如果两个动作符合happens-before原则，则两个操作互相间指令重排序受到限制，如果一个动作happens-before另一个动作，则第一个对第二个可见，且第一个排在第二个之前
+
+- 一个线程的各个action happens-before 这个线程的subsequent action
+- 一个monitor的unlock happens-before 这个monitor的subsequent lock
+- 对一个volatile变量的write happens-before 这个变量的read
+- 对一个线程的start()操作happens-before开启的线程里的action
+- 一个线程的所有action happens-before 其他join这个线程的action
+- happens-before有传递性，即如果a happens-before b,b happens-before c,则a happens-before c
 
 ## 3.2 volatile关键字
 
+JMM对于volatile关键字的规定，可以归结为两层：
+1）保证了不同线程对这个变量进行操作时的可见性，即一个线程修改了某个变量的值，这新值对其他线程来说是立即可见的
+2）当指令进行到volatile变量的Store操作时，在此之前的所有指令必须执行完毕，且在此之后的指令尚未执行
+
 ### 3.2.1 volatile关键字对指令重排序的影响
+
+从3.1.1可知，JMM规定如果一个变量被volatile修饰，则Store-Load操作不会被指令重排序
 
 ### 3.2.2 验证volatile关键字对内存的影响
 
+将1.1中测试代码里的变量a,b用volatile修饰，则无论运行多久，都不会再出现x=0;y=0;的情况，但仅修饰a和b其中一个不会有此效果
+
 ### 3.2.3 验证代码解析
 
-### 3.2.4 volatile关键字适用范围
+对volatile变量a,b的操作S1和S2之间，因为S1是volatile变量a的Store操作，因此S1不可和S2进行重排序，类似的，S4和S5也不可进行重排序，这就避免了2.3.4中重排序后指令的执行可能，因而不会出现```x=0;y=0;```的情况
 
 ## 4 参考
 
@@ -206,8 +229,3 @@ JVM运行时，机器码会操作对应的CPU进行缓存，JMM规定了一系�
 - [JSR133的FAQ](https://www.cs.umd.edu/users/pugh/java/memoryModel/jsr-133-faq.html)
 - [Intel对指令重排序的说明](http://www.cs.cmu.edu/~410-f10/doc/Intel_Reordering_318147.pdf)
 - [从多核硬件架构，看Java内存模型](https://www.jianshu.com/p/f5883ca0348f)
-
-## 备注
-
-1. 也有可能是多个处理器之间内存可见性问题
-

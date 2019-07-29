@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
  * @Modified By:
  */
 class Reveal extends Thread {
-    private int a = 0, b = 0;
+    private volatile int a = 0, b = 0;
     private int x = 0, y = 0;
     private ExecutorService executorService;
 

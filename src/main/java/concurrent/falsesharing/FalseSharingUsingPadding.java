@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class FalseSharingUsingPadding {
     public static void main(String[] args) {
-        final long TEST_COUNT = 1000*1000*500L;
+        final long TEST_COUNT = 1000 * 1000 * 500L;
         final int TEST_THREAD_COUNT = Runtime.getRuntime().availableProcessors();
         // 使用数组保证对象会被多个Core共享
         TestCacheLine[] objArray = new TestCacheLine[TEST_THREAD_COUNT];
