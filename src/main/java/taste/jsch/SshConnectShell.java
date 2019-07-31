@@ -1,4 +1,4 @@
-package taste.ssh;
+package taste.jsch;
 
 import com.jcraft.jsch.*;
 
