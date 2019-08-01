@@ -63,6 +63,7 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>**/*.txt</include>
+                    <include>**/*.xml</include>
                 </includes>
             </resource>
         </resources>
