@@ -1,4 +1,4 @@
-# Spring加载Bean的过程
+# SpringContext之xml配置初始化bean(1) 
 
 ## 1.1 测试用的**pom.xml**
 
