@@ -8,6 +8,7 @@ package taste.jsch;/* -*-mode:java; c-basic-offset:2; indent-tabs-mode:nil -*- *
  * on the remote side and outputs will be printed out.
  *
  */
+
 import com.jcraft.jsch.*;
 
 import java.io.BufferedReader;
