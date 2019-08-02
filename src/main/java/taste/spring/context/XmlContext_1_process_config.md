@@ -1,6 +1,10 @@
-# SpringContext之xml配置初始化bean(1) 
+# SpringContext之xml配置(1) new ClassPathXmlApplicationContext("a-c.xml")过程的configLocation参数处理
 
-## 1.1 测试用的**pom.xml**
+本系列主要介绍了SpringContext框架中，通过纯xml配置来初始化一个ApplicationContext，并通过class
+参数来获取实例bean的过程，本节主要介绍了学习过程中的配置文件，以及初始化ClassPathXmlApplicationContext实例过程中的
+第一部分，即处理入参字符串的部分
+
+## 1.1 pom.xml
 
 ```xml
     <!-- https://mvnrepository.com/artifact/org.springframework/spring-context -->
@@ -246,5 +250,4 @@ AbstractEnvironment的无参构造方法调用了customizePropertySources(this.p
 
 ### 2.2.3. ClassPathXmlApplicationContext调用refresh()方法
 
-
-
+ClassPathXmlApplicationContext没有复写此方法，实际调用的是父类AbstractApplicationContext的refresh方法，在这个方法中会进行Bean的初始化，具体的过程参考[第二节](./XmlContext_2_refresh.md)
