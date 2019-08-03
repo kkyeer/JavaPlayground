@@ -1,4 +1,4 @@
-# SpringContext之xml配置(2) new XmlApplicationContext("a-c.xml")过程的refresh()方法
+# SpringContext之xml配置(2) new XmlApplicationContext("a-c.xml")过程的refresh()方法:规整configLocation成Resource数组
 
 内容接续[第一节:configLocation参数处理](./XmlContext_1_process_config.md)，在处理完configLocation并执行完父类的构造方法后，正式开始扫描Xml并进行bean的构造与存储，即执行ClassPathXmlApplicationContext类的父类AbstractApplicationContext的refresh()方法，代码如下：
 
@@ -275,7 +275,7 @@ AbstractBeanFactory实例初始化完成后，沿继承链回到AbstractAutowire
 
 根据当前上下文的变量更新beanFactory的allowBeanDefinitionOverriding和allowCircularReferences属性，当前用例中都是null，因此无操作
 
-#### 1.2.1.3 loadBeanDefinitions(beanFactory)
+#### 1.2.1.3 AbstractXmlApplicationContext对象方法：loadBeanDefinitions(beanFactory)
 
 将所有的bean定义加载到内部的beanFactory，ClassPathXmlApplicationContext的父类AbstractXmlApplicationContext复写了这个方法：
 
@@ -298,9 +298,7 @@ AbstractBeanFactory实例初始化完成后，沿继承链回到AbstractAutowire
 	}
 ```
 
-XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionReader的environment,resourceLoader和entityResolver变量，initBeanDefinitionReader(beanDefinitionReader)方法把this.validating变量赋值给beanDefinationReader.validating，最后的loadBeanDefinitions(beanDefinitionReader)方法最终通过beanDefinationReader的帮助，将xml里的bean声明加载出来
-
-##### 1.2.1.3.1 loadBeanDefinitions(beanDefinitionReader)
+XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionReader的environment,resourceLoader和entityResolver变量，initBeanDefinitionReader(beanDefinitionReader)方法把this.validating变量赋值给beanDefinationReader.validating，最后的loadBeanDefinitions(beanDefinitionReader)方法最终通过beanDefinationReader的帮助，将xml里的bean声明加载出来，加载的顺序如代码所示：
 
 ```java
 	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
@@ -315,9 +313,10 @@ XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionR
 	}
 ```
 
-在当前用例中，configResource为空，因此最终调用到reader.loadBeanDefinitions(configLocations)
+对于AbstractXmlApplicationContext，configResources为null，在本用例中，configLocations={"application-context.xml"},
+调用到XmlBeanDefinitionReader实例的loadBeanDefinitions(configLocations)
 
-##### 1.2.1.3.2 XmlBeanDefinitionReader实例的reader.loadBeanDefinitions(configLocations)方法
+##### 1.2.1.3.1 XmlBeanDefinitionReader实例的reader.loadBeanDefinitions(configLocations)方法
 
 下面是XmlBeanDefinitionReader的类UML图
 ![XmlBeanDefinitionReader的类UML图](./XmlBeanDefinitionReader.png)
@@ -364,3 +363,33 @@ XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionR
 		}
 	}
 ```
+
+在这里，入参location是字符串"application-context.xml"，actualResources为null，程序执行过程如下
+
+1. 获取resourceLoader对象，此对象负责把入参的location字符串规整为Resource对象数组
+2. 遍历上一步规整好的Resource数组，对每一个Resource对象调用loadBeanDefinitions方法，此方法将初始化好的bean定义存入reader内部的registry变量中，
+此变量即ApplicationContext的refresh方法新创建的beanFactory，在初始化reader的过程中被关联进来
+3. 返回加载的BeanDefinition的数量
+
+对于当前实例来说
+
+1. 第一步中，resourceLoader在初始化过程中被赋值成当前的ClassPathXmlApplicationContext
+2. 第二步中，调用getResource(location)方法获取Resource数组时，程序中判断resourceLoader是否是ResourcePatternResolver实例，是则调用ResourcePatternResolver实例的方法,否则调用resourceLoader的方法来加载，在本例中，由于AbstractApplicationContext实现ResourcePatternResolver接口，因此调用了实现方法：```return this.resourcePatternResolver.getResources(locationPattern);```，在这里this.resourcePatternResolver为PathMatchingResourcePatternResolver对象
+
+###### 1.2.1.3.1.1 读取Resource数组：PathMatchingResourcePatternResolver实例方法：getResources(locationPattern)
+
+此方法根据传入的字符串的特征来调用相应的策略，将传入的字符串解析成Resource数组，策略按顺序如下：
+
+1. "classpath*:"开头的，首先检测是否有通配符('*','?',{})等，如果有，则遍历所有的classpath上的文件包括jar和zip文件来匹配并返回，如果没有通配符，则调用内部ClassLoader的getResources方法匹配相关路径，将结果包裹在UrlResource对象数组中返回
+2. 非"classpath*:"开头的，首先检测是否有通配符('*','?',{})等，如果有，则遍历所有的classpath上的文件包括jar和zip文件来匹配并返回，否则就是当前实例的情况，调用内部ClassLoader的getResources方法匹配相关路径，将结果包裹在UrlResource对象数组中返回，当前实例的ResourceLoader是当前的ClassPathXmlApplicationContext，其中resourceLoader相关的方法在父类DefaultResourceLoader中实现，此方法同样是对传入值进行各种模式判断，再根据判断结果使用不同的策略来返回结果，
+
+    1. ”/“开头的，将参数包裹为ClassPathContextResource对象返回
+    2. ”classpath:"开头的，去掉”classpath:"后将参数包裹为ClassPathResource对象返回
+    3. 上述都不符合，首先尝试包装参数成URL对象，再根据Url对象的protocol包装成FileUrlResource或者UrlResource对象
+    4. 无法解析成URL对象的，如本例的入参，则将参数包装成ClassPathContextResource对象返回，本例符合这种情况
+
+至此所有的configLocation字符串已经解析成Resource数组，当前实例中为一个ClassPathContextResource对象的数组，返回后，程序将继续进行Bean定义的读取
+
+###### 1.2.1.3.1.2 AbstractBeanDefinitionReader从Resource对象中加载Bean定义
+
+见下一节[AbstractBeanDefinitionReader从Resource对象中加载Bean定义](./XmlContext_3_LoadBeanDefinition.md)
