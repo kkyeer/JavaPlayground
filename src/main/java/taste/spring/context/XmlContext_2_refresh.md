@@ -392,4 +392,4 @@ XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionR
 
 ###### 1.2.1.3.1.2 AbstractBeanDefinitionReader从Resource对象中加载Bean定义
 
-见下一节[AbstractBeanDefinitionReader从Resource对象中加载Bean定义](./XmlContext_3_LoadBeanDefinition.md)
+见下一节[AbstractBeanDefinitionReader从Resource对象中加载Bean定义](XmlContext_3_LoadResource.md)
