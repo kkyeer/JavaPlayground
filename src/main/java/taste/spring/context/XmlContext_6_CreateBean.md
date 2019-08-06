@@ -1,0 +1,69 @@
+# SpringContext之xml配置(6) CreateBean
+
+实际执行具体的bean创建的，是refresh过程新建的DefaultListableBeanFactory的父类AbstractAutowireCapableBeanFactory中的createBean方法：
+
+```java
+    @Override
+    protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
+            throws BeanCreationException {
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Creating instance of bean '" + beanName + "'");
+        }
+        RootBeanDefinition mbdToUse = mbd;
+
+        // Make sure bean class is actually resolved at this point, and
+        // clone the bean definition in case of a dynamically resolved Class
+        // which cannot be stored in the shared merged bean definition.
+        Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
+        if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
+            mbdToUse = new RootBeanDefinition(mbd);
+            mbdToUse.setBeanClass(resolvedClass);
+        }
+
+        // Prepare method overrides.
+        try {
+            mbdToUse.prepareMethodOverrides();
+        }
+        catch (BeanDefinitionValidationException ex) {
+            throw new BeanDefinitionStoreException(mbdToUse.getResourceDescription(),
+                    beanName, "Validation of method overrides failed", ex);
+        }
+
+        try {
+            // Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+            Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+            if (bean != null) {
+                return bean;
+            }
+        }
+        catch (Throwable ex) {
+            throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName,
+                    "BeanPostProcessor before instantiation of bean failed", ex);
+        }
+
+        try {
+            Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished creating instance of bean '" + beanName + "'");
+            }
+            return beanInstance;
+        }
+        catch (BeanCreationException | ImplicitlyAppearedSingletonException ex) {
+            // A previously detected exception with proper bean creation context already,
+            // or illegal singleton state to be communicated up to DefaultSingletonBeanRegistry.
+            throw ex;
+        }
+        catch (Throwable ex) {
+            throw new BeanCreationException(
+                    mbdToUse.getResourceDescription(), beanName, "Unexpected exception during bean creation", ex);
+        }
+    }
+```
+
+1. 解析Bean对应的BeanClass
+2. 如果bean内部还没有BeanClass属性，则拷贝一份bd(beanDefinition的简称，下同)，并传入上一步解析的BeanClass
+3. 校验并准备所有的MethodOverride
+4. 调用可能的BeanPostProcessor，这些BeanPostProcessor可能用来生成代理类，如果BeanPostProcessor确实生成了bean，则返回不进行后续操作
+5. 调用doCreateBean方法来获取Object
+6. 

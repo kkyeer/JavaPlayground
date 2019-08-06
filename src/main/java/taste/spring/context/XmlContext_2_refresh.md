@@ -79,7 +79,22 @@
 	}
 ```
 
-## 1.1 准备环境：prepareRefresh()
+整个过程分下面的几个步骤：
+
+1. 准备操作：prepareRefresh()
+2. 重新加载所有的bean定义到新的beanFactory：ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory()
+3. 为新的beanFactory准备beanPostProcessor,Environment等:prepareBeanFactory(beanFactory);
+4. 执行子类的postProcessBeanFactory(beanFactory)方法
+5. 初始化并调用所有BeanFactoryPostProcessor类型的bean
+6. 注册BeanPostProcessors：registerBeanPostProcessors(beanFactory);
+7. 初始化MessageSource
+8. 初始化ApplicationEventMulticaster
+9. 其他操作：onRefresh()
+10. 注册ApplicationListener
+11. 初始化还未初始化的单例bean
+12. 结束refresh()
+
+## 1.1 准备操作：prepareRefresh()
 
 prepareRefresh方法的执行过程如方法名所示，主要进行环境变量的操作、日志的打印以及某些listener的处理，主要过程如下：
 
@@ -89,7 +104,7 @@ prepareRefresh方法的执行过程如方法名所示，主要进行环境变量
 4. 初始化earlyApplicationListeners和applicationListeners，当前用例里为空，注意存储使用的是LinkedHashSet，是有序set
 5. 初始化earlyApplicationEvents为空的LinkedHashSet
 
-## 1.2 初始化空beanFactory：ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory()
+## 1.2 重新加载beanFactory：ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory()
 
 ```java
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
@@ -319,6 +334,7 @@ XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionR
 ##### 1.2.1.3.1 XmlBeanDefinitionReader实例的reader.loadBeanDefinitions(configLocations)方法
 
 下面是XmlBeanDefinitionReader的类UML图
+
 ![XmlBeanDefinitionReader的类UML图](./XmlBeanDefinitionReader.png)
 
 实际调用的是抽象类AbstractBeanDefinitionReader的方法
@@ -392,4 +408,211 @@ XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionR
 
 ###### 1.2.1.3.1.2 AbstractBeanDefinitionReader从Resource对象中加载Bean定义
 
-见下一节[AbstractBeanDefinitionReader从Resource对象中加载Bean定义](XmlContext_3_LoadResource.md)
+AbstractBeanDefinitionReader获取到Resource数组后，会迭代数组元素，对每个Resource执行```loadBeanDefinitions(Resource resource)```方法来加载Bean定义，并将读取到的Bean定义数目加和后返回，具体的读取流程见下一节[AbstractBeanDefinitionReader从Resource对象中加载Bean定义](XmlContext_3_LoadResource.md)
+
+每个configLocation的每个Resource对象的Bean全部加载完成后，beanFactory被存入ApplicationContext，继续进行refresh操作
+
+## 1.3 prepareBeanFactory(beanFactory)
+
+在这一步之前，所有的beanDefinition已经被读取并存入beanFactory中，这一步在bean初始化之前，准备一些环境相关的bean：
+
+```java
+	protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+		// Tell the internal bean factory to use the context's class loader etc.
+		beanFactory.setBeanClassLoader(getClassLoader());
+		beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
+		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
+
+		// Configure the bean factory with context callbacks.
+		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
+		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
+		beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
+		beanFactory.ignoreDependencyInterface(ApplicationEventPublisherAware.class);
+		beanFactory.ignoreDependencyInterface(MessageSourceAware.class);
+		beanFactory.ignoreDependencyInterface(ApplicationContextAware.class);
+
+		// BeanFactory interface not registered as resolvable type in a plain factory.
+		// MessageSource registered (and found for autowiring) as a bean.
+		beanFactory.registerResolvableDependency(BeanFactory.class, beanFactory);
+		beanFactory.registerResolvableDependency(ResourceLoader.class, this);
+		beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
+		beanFactory.registerResolvableDependency(ApplicationContext.class, this);
+
+		// Register early post-processor for detecting inner beans as ApplicationListeners.
+		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
+
+		// Detect a LoadTimeWeaver and prepare for weaving, if found.
+		if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
+			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
+			// Set a temporary ClassLoader for type matching.
+			beanFactory.setTempClassLoader(new ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));
+		}
+
+		// Register default environment beans.
+		if (!beanFactory.containsLocalBean(ENVIRONMENT_BEAN_NAME)) {
+			beanFactory.registerSingleton(ENVIRONMENT_BEAN_NAME, getEnvironment());
+		}
+		if (!beanFactory.containsLocalBean(SYSTEM_PROPERTIES_BEAN_NAME)) {
+			beanFactory.registerSingleton(SYSTEM_PROPERTIES_BEAN_NAME, getEnvironment().getSystemProperties());
+		}
+		if (!beanFactory.containsLocalBean(SYSTEM_ENVIRONMENT_BEAN_NAME)) {
+			beanFactory.registerSingleton(SYSTEM_ENVIRONMENT_BEAN_NAME, getEnvironment().getSystemEnvironment());
+		}
+	}
+```
+
+1. 设置BeanClassLoader：与当前ApplicationContext相同
+2. 设置BeanExpressionResolver：一个StandardBeanExpressionResolver实例
+3. 新增PropertyEditorRegistrar
+4. 新增BeanPostProcessor：ApplicationContextAwareProcessor
+5. 忽略依赖类：EnvironmentAware，EmbeddedValueResolverAware，ResourceLoaderAware，ApplicationEventPublisherAware，MessageSourceAware，ApplicationContextAware
+6. 把beanFactory本身注册为ResolvableDependency，类型为BeanFactory
+7. 把ApplicationContext本身注册为ResolvableDependency，类型是ResourceLoader，ApplicationEventPublisher，ApplicationContext
+8. 新增BeanPostProcessor：ApplicationListenerDetector
+9. 如果有定义LoadTimeWeaver，则新增BeanPostProcessor：LoadTimeWeaverAwareProcessor，并初始化临时ClassLoader:new ContextTypeMatchClassLoader
+10. 将上下文内部的Environment注册为名叫"environment"的单例bean
+11. 将上下文内部的Environment内部的SystemProperties注册为名叫"systemProperties"的单例bean
+12. 将上下文内部的Environment内部的SystemEnvironment注册为名叫"systemEnvironment"的单例bean
+
+## 1.4. 执行子类的postProcessBeanFactory(beanFactory)方法
+
+在AbstractApplicationContext里为空方法体
+
+## 1.5. 初始化并调用所有BeanFactoryPostProcessor类型的bean
+
+此方法初始化并调用所有BeanFactoryPostProcessor类型的bean，完成后处理 "loadTimeWeaver"，在当前用例里没有定义任何的BeanFactoryPostProcessor
+
+## 1.6. 注册BeanPostProcessors：registerBeanPostProcessors(beanFactory);
+
+在当前上下文中未定义BeanPostProcessor
+
+## 1.7. 初始化MessageSource
+
+如果beanFactory有定义MessageSource(beanName为"messageSource")，则设置当前ApplicationContext的MessageSource为定义的bean，否则初始化一个DelegatingMessageSource
+
+## 1.8. 初始化ApplicationEventMulticaster
+
+如果beanFactory有name为"applicationEventMulticaster"的bean，则使用，否则使用SimpleApplicationEventMulticaster
+
+## 1.9. onRefresh()
+
+方法体为空
+
+## 1.10. 注册ApplicationListener
+
+如果有ApplicationListener或者bean，将其注册到applicationEventMulticaster上，并且广播当前已经缓存的earlyEventsToProcess事件
+
+## 1.11. 初始化还未初始化的单例bean
+
+在beanFactory中的bean定义、环境bean、listener、processor全部准备好后，开始初始化其他还未初始化的单例bean，具体实现在AbstractApplicationContext的finishBeanFactoryInitialization方法：
+
+```java
+	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
+		// Initialize conversion service for this context.
+		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
+				beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
+			beanFactory.setConversionService(
+					beanFactory.getBean(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class));
+		}
+
+		// Register a default embedded value resolver if no bean post-processor
+		// (such as a PropertyPlaceholderConfigurer bean) registered any before:
+		// at this point, primarily for resolution in annotation attribute values.
+		if (!beanFactory.hasEmbeddedValueResolver()) {
+			beanFactory.addEmbeddedValueResolver(strVal -> getEnvironment().resolvePlaceholders(strVal));
+		}
+
+		// Initialize LoadTimeWeaverAware beans early to allow for registering their transformers early.
+		String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware.class, false, false);
+		for (String weaverAwareName : weaverAwareNames) {
+			getBean(weaverAwareName);
+		}
+
+		// Stop using the temporary ClassLoader for type matching.
+		beanFactory.setTempClassLoader(null);
+
+		// Allow for caching all bean definition metadata, not expecting further changes.
+		beanFactory.freezeConfiguration();
+
+		// Instantiate all remaining (non-lazy-init) singletons.
+		beanFactory.preInstantiateSingletons();
+	}
+```
+
+1. 如果定义了"conversionService"，则使用
+2. 初始化beanFactory的ValueResolver：strVal -> getEnvironment().resolvePlaceholders(strVal)
+3. 初始化LoadTimeWeaverAware，结束后清空临时ClassLoader
+4. 冻结当前的定义状态，准备初始化及提取MetaData
+5. 初始化自定义的单例Bean：preInstantiateSingletons()
+
+### 1.11.1 初始化自定义的单例Bean
+
+```java
+	@Override
+	public void preInstantiateSingletons() throws BeansException {
+		if (logger.isTraceEnabled()) {
+			logger.trace("Pre-instantiating singletons in " + this);
+		}
+
+		// Iterate over a copy to allow for init methods which in turn register new bean definitions.
+		// While this may not be part of the regular factory bootstrap, it does otherwise work fine.
+		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
+
+		// Trigger initialization of all non-lazy singleton beans...
+		for (String beanName : beanNames) {
+			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+				if (isFactoryBean(beanName)) {
+					Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
+					if (bean instanceof FactoryBean) {
+						final FactoryBean<?> factory = (FactoryBean<?>) bean;
+						boolean isEagerInit;
+						if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
+							isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>)
+											((SmartFactoryBean<?>) factory)::isEagerInit,
+									getAccessControlContext());
+						}
+						else {
+							isEagerInit = (factory instanceof SmartFactoryBean &&
+									((SmartFactoryBean<?>) factory).isEagerInit());
+						}
+						if (isEagerInit) {
+							getBean(beanName);
+						}
+					}
+				}
+				else {
+					getBean(beanName);
+				}
+			}
+		}
+
+		// Trigger post-initialization callback for all applicable beans...
+		for (String beanName : beanNames) {
+			Object singletonInstance = getSingleton(beanName);
+			if (singletonInstance instanceof SmartInitializingSingleton) {
+				final SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
+				if (System.getSecurityManager() != null) {
+					AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+						smartSingleton.afterSingletonsInstantiated();
+						return null;
+					}, getAccessControlContext());
+				}
+				else {
+					smartSingleton.afterSingletonsInstantiated();
+				}
+			}
+		}
+	}
+```
+
+1. 复制当前的beanDefinitionNames数组到方法本地变量进行迭代，这样允许在bean初始化过程中注册新的bean到beanDefinitionNames而不影响迭代过程
+2. 对于每一个bean，执行下面的过程来初始化
+    1. 合并所有的BeanDefinition
+    2. 对于非Abstract、非懒加载的SingletonBean，如果是FactoryBean，则先调用getBean(beanName)方法初始化名为"&"+beanName的FactoryBean，再调用getBean(beanName)方法来初始化bean，如果不是FactoryBean，则直接调用getBean(beanName)方法，getBean(beanName)方法具体执行bean的初始化、连接、注入等功能，详情见[初始化bean的过程](./XmlContext_5_BeanDefinitionToBean.md)
+
+BeanFactory和FactoryBean的区别：
+
+>FactoryBean是一个接口，接口中有getObject()方法，实现了此接口的bean，在SpringContext中作为Factory使用，beanFactory中维护了一个name为"&"+"beanName"的bean，用来生成具体的bean，"&"是Spring约定的标记一个bean为FactoryBean的标记
+>BeanFactory也是一个接口，内部定义了管理Bean生命周期、存取的方法，比如getBean的各种重载方法、containsBean、isSingleton等方法，ApplicationContext接口继承了此接口，因此，各种Context也实现了ApplicationContext接口，都可以看作BeanFactory
