@@ -64,6 +64,17 @@
 1. 解析Bean对应的BeanClass
 2. 如果bean内部还没有BeanClass属性，则拷贝一份bd(beanDefinition的简称，下同)，并传入上一步解析的BeanClass
 3. 校验并准备所有的MethodOverride
-4. 调用可能的BeanPostProcessor，这些BeanPostProcessor可能用来生成代理类，如果BeanPostProcessor确实生成了bean，则返回不进行后续操作
+4. 初始化之前的钩子函数：调用可能的BeanPostProcessor，这些BeanPostProcessor可能用来生成代理类，如果这些BeanPostProcessor中生成了bean，则返回生成的bean不进行后续操作
 5. 调用doCreateBean方法来获取Object
-6. 
+
+## 1.1 解析Bean对应的BeanClass
+
+BeanClass的确定按找下述顺序确定
+
+1. bd里的beanClass是Class对象（刚读取xml配置后是String对象）时，则返回bd的beanClass属性
+2. 根据当前是否配置SecurityManager，来进行授权调用或非授权调用，调用的方法为doResolveBeanClass方法
+
+### 1.1.1 doResolveBeanClass
+
+1. 获取当前BeanFactory的BeanClassLoader属性
+2. 判断是否需要
