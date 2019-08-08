@@ -66,6 +66,7 @@
 3. 校验并准备所有的MethodOverride
 4. 初始化之前的钩子函数：调用可能的BeanPostProcessor，这些BeanPostProcessor可能用来生成代理类，如果这些BeanPostProcessor中生成了bean，则返回生成的bean不进行后续操作
 5. 调用doCreateBean方法来获取Object
+6. 
 
 ## 1.1 解析Bean对应的BeanClass
 
@@ -163,4 +164,100 @@ private Expression[] parseExpressions(String expressionString, ParserContext con
 
 ## 1.2 校验并准备所有的MethodOverride
 
-## 1.3
+## 1.3 调用可能的InstantiationAwareBeanPostProcessor
+
+## 1.4 doCreateBean方法
+
+1. 初始化BeanWrapper
+2. 从factoryBeanInstanceCache中获取已经缓存的未完全完成的FactoryBean
+3. 调用createBeanInstance方法，选取合适的构造策略来构建实例
+4. 
+
+### 1.4.1 createBeanInstance方法
+
+根据bd，按下列顺序尝试获取实例
+
+1. InstanceSupplier：bd内部的Supplier
+2. FactoryMethod：调用FactoryBean的对应Method
+3. 寻找使用的Constructor和autowireMode：
+    1. 缓存中查找：resolvedConstructorOrFactoryMethod缓存了可能的解析完成的Constructor和Factory Method，constructorArgumentsResolved标识了构造器参数列表是否解析完成
+    2. 如果上述缓存没有发现，则调用determineConstructorsFromBeanPostProcessors方法来获取BeanProcessor相关的Constructor数组
+    3. 如果上面返回的构造器数组非空（表明有BeanPostProcessor定义），或者bd里的autowireMode为AUTOWIRE_CONSTRUCTOR，或者调用初始化bean的args列表非空，或者bd的constructor-args配置非空，均表明可能需要自动注入，则调用```autowireConstructor(beanName, mbd, ctors, args)```方法来自动注入并初始化
+    4. 如果class只有一个空构造器，且配置里也没有方法constructor-args参数列表，则调用空构造器来初始化实例```instantiateBean(beanName, mbd)```
+
+#### 1.4.1.1 自动注入构造器的初始化Bean:autowireConstructor
+
+#### 1.4.1.2 空参数构造器初始化Bean:instantiateBean
+
+```java
+    protected BeanWrapper instantiateBean(final String beanName, final RootBeanDefinition mbd) {
+        try {
+            Object beanInstance;
+            final BeanFactory parent = this;
+            if (System.getSecurityManager() != null) {
+                beanInstance = AccessController.doPrivileged((PrivilegedAction<Object>) () ->
+                        getInstantiationStrategy().instantiate(mbd, beanName, parent),
+                        getAccessControlContext());
+            }
+            else {
+                beanInstance = getInstantiationStrategy().instantiate(mbd, beanName, parent);
+            }
+            BeanWrapper bw = new BeanWrapperImpl(beanInstance);
+            initBeanWrapper(bw);
+            return bw;
+        }
+        catch (Throwable ex) {
+            throw new BeanCreationException(
+                    mbd.getResourceDescription(), beanName, "Instantiation of bean failed", ex);
+        }
+    }
+```
+
+1. 调用InstantiationStrategy(对于AbstractAutoWireCapableBeanFactory是CglibSubclassingInstantiationStrategy)的instantiate(mbd, beanName, parent)方法来获取bean实例
+2. 获取的实例包裹到BeanWrapperImpl对象中
+3. initBeanWrapper
+
+##### 1.4.1.2.1 CglibSubclassingInstantiationStrategy的instantiate方法
+
+```java
+    @Override
+    public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
+        // Don't override the class with CGLIB if no overrides.
+        if (!bd.hasMethodOverrides()) {
+            Constructor<?> constructorToUse;
+            synchronized (bd.constructorArgumentLock) {
+                constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
+                if (constructorToUse == null) {
+                    final Class<?> clazz = bd.getBeanClass();
+                    if (clazz.isInterface()) {
+                        throw new BeanInstantiationException(clazz, "Specified class is an interface");
+                    }
+                    try {
+                        if (System.getSecurityManager() != null) {
+                            constructorToUse = AccessController.doPrivileged(
+                                    (PrivilegedExceptionAction<Constructor<?>>) clazz::getDeclaredConstructor);
+                        }
+                        else {
+                            constructorToUse = clazz.getDeclaredConstructor();
+                        }
+                        bd.resolvedConstructorOrFactoryMethod = constructorToUse;
+                    }
+                    catch (Throwable ex) {
+                        throw new BeanInstantiationException(clazz, "No default constructor found", ex);
+                    }
+                }
+            }
+            return BeanUtils.instantiateClass(constructorToUse);
+        }
+        else {
+            // Must generate CGLIB subclass.
+            return instantiateWithMethodInjection(bd, beanName, owner);
+        }
+    }
+```
+
+如果没有MethodOverride的情况，则调用clazz.getDeclaredConstructor()方法获取空参数构造器，存入bd的resolvedConstructorOrFactoryMethod缓存后，调用BeanUtils.instantiateClass(constructorToUse)方法来获取实例，在这个方法中，会尝试将非public的Constructor更改为public，然后调用constructor.newInstance()方法来获取对象并返回，当然，如果是Kotlin，则调用Kotlin相关的代理方法来构造
+
+如果有MethodOverride的情况，则调用cglib框架的Enhancer相关方法，创建bd里beanClass的子类，使用反射来调用子类的构造器并返回构造的bean实例
+
+
