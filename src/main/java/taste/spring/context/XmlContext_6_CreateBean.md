@@ -64,7 +64,7 @@
 1. 解析Bean对应的BeanClass
 2. 如果bean内部还没有BeanClass属性，则拷贝一份bd(beanDefinition的简称，下同)，并传入上一步解析的BeanClass
 3. 校验并准备所有的MethodOverride
-4. 初始化之前的钩子函数：调用可能的BeanPostProcessor，这些BeanPostProcessor可能用来生成代理类，如果这些BeanPostProcessor中生成了bean，则返回生成的bean不进行后续操作
+4. 初始化之前的钩子函数：调用可能的InstantiationAwareBeanPostProcessor，这些BeanPostProcessor可能用来生成代理类，如果这些BeanPostProcessor中生成了bean，则返回生成的bean不进行后续操作
 5. 调用doCreateBean方法来获取Object
 6. 
 
@@ -171,8 +171,10 @@ private Expression[] parseExpressions(String expressionString, ParserContext con
 1. 初始化BeanWrapper为null
 2. 从factoryBeanInstanceCache中获取已经缓存的未完全完成的FactoryBean对应的BeanWrapper
 3. 如果上一步未获取到非空的BeanWrapper，则调用BeanFactory的createBeanInstance方法，选取合适的构造策略来构建BeanWrapper
-4. 调用可能的MergedBeanDefinitionPostProcessor修改bd
-5. 
+4. 调用可能的MergedBeanDefinitionPostProcessor修改bd，修改完成后mbd.postProcessed = true
+5. 如果允许循环引用，则提前缓存创建中的单例Bean
+6. 解析BeanWrapper中的PropertyValue并set到Bean：```populateBean(beanName, mbd, instanceWrapper);```
+7. 
 
 ### 1.4.1 createBeanInstance方法
 
@@ -271,50 +273,50 @@ BeanWrapperImpl的类关系图如下：
 ##### 1.4.1.2.3 BeanFactory的initBeanWrapper方法
 
 ```java
-	protected void initBeanWrapper(BeanWrapper bw) {
-		bw.setConversionService(getConversionService());
-		registerCustomEditors(bw);
-	}
+    protected void initBeanWrapper(BeanWrapper bw) {
+        bw.setConversionService(getConversionService());
+        registerCustomEditors(bw);
+    }
 ```
 
 第一步是将BeanFactory的ConvertionService传入BeanWrapper，第二步是初始化BeanWrapper的自定义Editor:
 
 ```java
-	protected void registerCustomEditors(PropertyEditorRegistry registry) {
-		PropertyEditorRegistrySupport registrySupport =
-				(registry instanceof PropertyEditorRegistrySupport ? (PropertyEditorRegistrySupport) registry : null);
-		if (registrySupport != null) {
-			registrySupport.useConfigValueEditors();
-		}
-		if (!this.propertyEditorRegistrars.isEmpty()) {
-			for (PropertyEditorRegistrar registrar : this.propertyEditorRegistrars) {
-				try {
-					registrar.registerCustomEditors(registry);
-				}
-				catch (BeanCreationException ex) {
-					Throwable rootCause = ex.getMostSpecificCause();
-					if (rootCause instanceof BeanCurrentlyInCreationException) {
-						BeanCreationException bce = (BeanCreationException) rootCause;
-						String bceBeanName = bce.getBeanName();
-						if (bceBeanName != null && isCurrentlyInCreation(bceBeanName)) {
-							if (logger.isDebugEnabled()) {
-								logger.debug("PropertyEditorRegistrar [" + registrar.getClass().getName() +
-										"] failed because it tried to obtain currently created bean '" +
-										ex.getBeanName() + "': " + ex.getMessage());
-							}
-							onSuppressedException(ex);
-							continue;
-						}
-					}
-					throw ex;
-				}
-			}
-		}
-		if (!this.customEditors.isEmpty()) {
-			this.customEditors.forEach((requiredType, editorClass) ->
-					registry.registerCustomEditor(requiredType, BeanUtils.instantiateClass(editorClass)));
-		}
-	}
+    protected void registerCustomEditors(PropertyEditorRegistry registry) {
+        PropertyEditorRegistrySupport registrySupport =
+                (registry instanceof PropertyEditorRegistrySupport ? (PropertyEditorRegistrySupport) registry : null);
+        if (registrySupport != null) {
+            registrySupport.useConfigValueEditors();
+        }
+        if (!this.propertyEditorRegistrars.isEmpty()) {
+            for (PropertyEditorRegistrar registrar : this.propertyEditorRegistrars) {
+                try {
+                    registrar.registerCustomEditors(registry);
+                }
+                catch (BeanCreationException ex) {
+                    Throwable rootCause = ex.getMostSpecificCause();
+                    if (rootCause instanceof BeanCurrentlyInCreationException) {
+                        BeanCreationException bce = (BeanCreationException) rootCause;
+                        String bceBeanName = bce.getBeanName();
+                        if (bceBeanName != null && isCurrentlyInCreation(bceBeanName)) {
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("PropertyEditorRegistrar [" + registrar.getClass().getName() +
+                                        "] failed because it tried to obtain currently created bean '" +
+                                        ex.getBeanName() + "': " + ex.getMessage());
+                            }
+                            onSuppressedException(ex);
+                            continue;
+                        }
+                    }
+                    throw ex;
+                }
+            }
+        }
+        if (!this.customEditors.isEmpty()) {
+            this.customEditors.forEach((requiredType, editorClass) ->
+                    registry.registerCustomEditor(requiredType, BeanUtils.instantiateClass(editorClass)));
+        }
+    }
 ```
 
 1. 将BeanWrapper的configValueEditorsActive设为true
@@ -324,41 +326,41 @@ BeanWrapperImpl的类关系图如下：
 ###### 1.4.1.2.3.1 ResourceEditorRegistrar的```registrar.registerCustomEditors(registry)```方法
 
 ```java
-	@Override
-	public void registerCustomEditors(PropertyEditorRegistry registry) {
-		ResourceEditor baseEditor = new ResourceEditor(this.resourceLoader, this.propertyResolver);
-		doRegisterEditor(registry, Resource.class, baseEditor);
-		doRegisterEditor(registry, ContextResource.class, baseEditor);
-		doRegisterEditor(registry, InputStream.class, new InputStreamEditor(baseEditor));
-		doRegisterEditor(registry, InputSource.class, new InputSourceEditor(baseEditor));
-		doRegisterEditor(registry, File.class, new FileEditor(baseEditor));
-		doRegisterEditor(registry, Path.class, new PathEditor(baseEditor));
-		doRegisterEditor(registry, Reader.class, new ReaderEditor(baseEditor));
-		doRegisterEditor(registry, URL.class, new URLEditor(baseEditor));
+    @Override
+    public void registerCustomEditors(PropertyEditorRegistry registry) {
+        ResourceEditor baseEditor = new ResourceEditor(this.resourceLoader, this.propertyResolver);
+        doRegisterEditor(registry, Resource.class, baseEditor);
+        doRegisterEditor(registry, ContextResource.class, baseEditor);
+        doRegisterEditor(registry, InputStream.class, new InputStreamEditor(baseEditor));
+        doRegisterEditor(registry, InputSource.class, new InputSourceEditor(baseEditor));
+        doRegisterEditor(registry, File.class, new FileEditor(baseEditor));
+        doRegisterEditor(registry, Path.class, new PathEditor(baseEditor));
+        doRegisterEditor(registry, Reader.class, new ReaderEditor(baseEditor));
+        doRegisterEditor(registry, URL.class, new URLEditor(baseEditor));
 
-		ClassLoader classLoader = this.resourceLoader.getClassLoader();
-		doRegisterEditor(registry, URI.class, new URIEditor(classLoader));
-		doRegisterEditor(registry, Class.class, new ClassEditor(classLoader));
-		doRegisterEditor(registry, Class[].class, new ClassArrayEditor(classLoader));
+        ClassLoader classLoader = this.resourceLoader.getClassLoader();
+        doRegisterEditor(registry, URI.class, new URIEditor(classLoader));
+        doRegisterEditor(registry, Class.class, new ClassEditor(classLoader));
+        doRegisterEditor(registry, Class[].class, new ClassArrayEditor(classLoader));
 
-		if (this.resourceLoader instanceof ResourcePatternResolver) {
-			doRegisterEditor(registry, Resource[].class,
-					new ResourceArrayPropertyEditor((ResourcePatternResolver) this.resourceLoader, this.propertyResolver));
-		}
-	}
+        if (this.resourceLoader instanceof ResourcePatternResolver) {
+            doRegisterEditor(registry, Resource[].class,
+                    new ResourceArrayPropertyEditor((ResourcePatternResolver) this.resourceLoader, this.propertyResolver));
+        }
+    }
 
-	/**
-	 * Override default editor, if possible (since that's what we really mean to do here);
-	 * otherwise register as a custom editor.
-	 */
-	private void doRegisterEditor(PropertyEditorRegistry registry, Class<?> requiredType, PropertyEditor editor) {
-		if (registry instanceof PropertyEditorRegistrySupport) {
-			((PropertyEditorRegistrySupport) registry).overrideDefaultEditor(requiredType, editor);
-		}
-		else {
-			registry.registerCustomEditor(requiredType, editor);
-		}
-	}
+    /**
+     * Override default editor, if possible (since that's what we really mean to do here);
+     * otherwise register as a custom editor.
+     */
+    private void doRegisterEditor(PropertyEditorRegistry registry, Class<?> requiredType, PropertyEditor editor) {
+        if (registry instanceof PropertyEditorRegistrySupport) {
+            ((PropertyEditorRegistrySupport) registry).overrideDefaultEditor(requiredType, editor);
+        }
+        else {
+            registry.registerCustomEditor(requiredType, editor);
+        }
+    }
 ```
 
 代码简洁明了：
@@ -370,9 +372,154 @@ BeanWrapperImpl的类关系图如下：
 
 ###### 1.4.1.2.3.2 BeanWrapper的```registerCustomEditor(requiredType, BeanUtils.instantiateClass(editorClass)))```方法
 
-## 1.5 MergedBeanDefinitionPostProcessor修改bd
+### 1.4.2 MergedBeanDefinitionPostProcessor修改bd
 
-在AbstractApplicationContext的refresh方法中，获取完新BeanFactory后```prepareBeanFactory(beanFactory)```的过程中，
+在AbstractApplicationContext的refresh方法中，获取完新BeanFactory后```prepareBeanFactory(beanFactory)```的过程中，初始化了一个ApplicationListenerDetector类型的BeanPostProcessor，并在后续的```registerBeanPostProcessors(beanFactory);```过程中刷新了它，这个类实现了MergedBeanDefinitionPostProcessor接口，因此在会被调用到BeanPostProcessor的```postProcessMergedBeanDefinition(mbd, beanType, beanName)```方法:
 
-## 
+```java
+    @Override
+    public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
+        this.singletonNames.put(beanName, beanDefinition.isSingleton());
+    }
+```
 
+这里内部维护的singletonNames存储了每个bean是否可以被注册成ApplicationListener的flag，初始化bean开始前，值为beanDefinition.isSingleton()，即认为所有的单例类都可注册为ApplicationListener
+
+### 1.4.3 提前缓存创建中的单例Bean
+
+1. 判断依据：```mbd.isSingleton() && this.allowCircularReferences && isSingletonCurrentlyInCreation(beanName)```
+    1. bd是单例Bean
+    2. BeanFactory允许循环引用(默认True)
+    3. 单例正在创建中（所以才需要提前缓存）
+2. 存入内部缓存并更新相关属性：```addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));```
+
+#### 1.4.3.1 将对应的SingletonFactory存入内部缓存并更新相关属性
+
+调用到DefaultSingletonBeanRegistry类的方法：
+
+```
+    protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
+        Assert.notNull(singletonFactory, "Singleton factory must not be null");
+        synchronized (this.singletonObjects) {
+            if (!this.singletonObjects.containsKey(beanName)) {
+                this.singletonFactories.put(beanName, singletonFactory);
+                this.earlySingletonObjects.remove(beanName);
+                this.registeredSingletons.add(beanName);
+            }
+        }
+    }
+```
+
+各个缓存作用为：
+
+- singletonObjects：存储单例Bean，bean name to bean instance
+- singletonFactories：存储生成单例Bean的ObjectFactory，bean name to ObjectFactory
+- earlySingletonObjects：存储early阶段的Bean，bean name to bean instance
+- registeredSingletons：LinkedHashSet类型，**按顺序**存储注册的单例Bean的名称
+
+### 1.4.4 解析BeanWrapper中的PropertyValue并set到Bean：```populateBean(beanName, mbd, instanceWrapper);```
+
+1. 校验bd
+2. 如果!mbd.isSynthetic()且BeanFactory内部有InstantiationAwareBeanPostProcessor实例，则调用postProcessAfterInstantiation方法处理BeanWrapper内部的bean实例，如果此Processor要求执行完毕后返回，则直接返回，不进行下一步操作
+3. 如果autowireMode不是AUTO，则根据bd内部的autowireMode调用响应的方法进行自动注入：
+    1. AUTOWIRE_BY_NAME：```autowireByName(beanName, mbd, bw, newPvs)```
+    2. AUTOWIRE_BY_TYPE：```autowireByType(beanName, mbd, bw, newPvs)```
+4. 如果BeanFactory内部有InstantiationAwareBeanPostProcessor实例，则
+    1. 调用BeanFactory的filterPropertyDescriptorsForDependencyCheck方法过滤PropertyValue，过滤掉ignoredDependencyTypes和ignoredDependencyInterfaces中定义的类型
+    2. 调用InstantiationAwareBeanPostProcessor的postProcessProperties处理PropertyValue
+5. 检查依赖的PropertyValue是否已经满足
+6. 调用applyPropertyValues方法来解析并set到Bean
+
+#### 1.4.4.1 非自动注入的PropertyValue处理：applyPropertyValues方法
+
+```java
+    protected void applyPropertyValues(String beanName, BeanDefinition mbd, BeanWrapper bw, PropertyValues pvs) {
+        if (pvs.isEmpty()) {
+            return;
+        }
+
+        if (System.getSecurityManager() != null && bw instanceof BeanWrapperImpl) {
+            ((BeanWrapperImpl) bw).setSecurityContext(getAccessControlContext());
+        }
+
+        MutablePropertyValues mpvs = null;
+        List<PropertyValue> original;
+
+        if (pvs instanceof MutablePropertyValues) {
+            mpvs = (MutablePropertyValues) pvs;
+            if (mpvs.isConverted()) {
+                // Shortcut: use the pre-converted values as-is.
+                try {
+                    bw.setPropertyValues(mpvs);
+                    return;
+                }
+                catch (BeansException ex) {
+                    throw new BeanCreationException(
+                            mbd.getResourceDescription(), beanName, "Error setting property values", ex);
+                }
+            }
+            original = mpvs.getPropertyValueList();
+        }
+        else {
+            original = Arrays.asList(pvs.getPropertyValues());
+        }
+
+        TypeConverter converter = getCustomTypeConverter();
+        if (converter == null) {
+            converter = bw;
+        }
+        BeanDefinitionValueResolver valueResolver = new BeanDefinitionValueResolver(this, beanName, mbd, converter);
+
+        // Create a deep copy, resolving any references for values.
+        List<PropertyValue> deepCopy = new ArrayList<>(original.size());
+        boolean resolveNecessary = false;
+        for (PropertyValue pv : original) {
+            if (pv.isConverted()) {
+                deepCopy.add(pv);
+            }
+            else {
+                String propertyName = pv.getName();
+                Object originalValue = pv.getValue();
+                Object resolvedValue = valueResolver.resolveValueIfNecessary(pv, originalValue);
+                Object convertedValue = resolvedValue;
+                boolean convertible = bw.isWritableProperty(propertyName) &&
+                        !PropertyAccessorUtils.isNestedOrIndexedProperty(propertyName);
+                if (convertible) {
+                    convertedValue = convertForProperty(resolvedValue, propertyName, bw, converter);
+                }
+                // Possibly store converted value in merged bean definition,
+                // in order to avoid re-conversion for every created bean instance.
+                if (resolvedValue == originalValue) {
+                    if (convertible) {
+                        pv.setConvertedValue(convertedValue);
+                    }
+                    deepCopy.add(pv);
+                }
+                else if (convertible && originalValue instanceof TypedStringValue &&
+                        !((TypedStringValue) originalValue).isDynamic() &&
+                        !(convertedValue instanceof Collection || ObjectUtils.isArray(convertedValue))) {
+                    pv.setConvertedValue(convertedValue);
+                    deepCopy.add(pv);
+                }
+                else {
+                    resolveNecessary = true;
+                    deepCopy.add(new PropertyValue(pv, convertedValue));
+                }
+            }
+        }
+        if (mpvs != null && !resolveNecessary) {
+            mpvs.setConverted();
+        }
+
+        // Set our (possibly massaged) deep copy.
+        try {
+            bw.setPropertyValues(new MutablePropertyValues(deepCopy));
+        }
+        catch (BeansException ex) {
+            throw new BeanCreationException(
+                    mbd.getResourceDescription(), beanName, "Error setting property values", ex);
+        }
+    }
+```
+
+1. 
