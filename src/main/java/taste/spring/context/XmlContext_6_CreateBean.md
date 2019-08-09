@@ -168,10 +168,11 @@ private Expression[] parseExpressions(String expressionString, ParserContext con
 
 ## 1.4 doCreateBean方法
 
-1. 初始化BeanWrapper
-2. 从factoryBeanInstanceCache中获取已经缓存的未完全完成的FactoryBean
-3. 调用createBeanInstance方法，选取合适的构造策略来构建实例
-4. 
+1. 初始化BeanWrapper为null
+2. 从factoryBeanInstanceCache中获取已经缓存的未完全完成的FactoryBean对应的BeanWrapper
+3. 如果上一步未获取到非空的BeanWrapper，则调用BeanFactory的createBeanInstance方法，选取合适的构造策略来构建BeanWrapper
+4. 调用可能的MergedBeanDefinitionPostProcessor修改bd
+5. 
 
 ### 1.4.1 createBeanInstance方法
 
@@ -215,7 +216,8 @@ private Expression[] parseExpressions(String expressionString, ParserContext con
 
 1. 调用InstantiationStrategy(对于AbstractAutoWireCapableBeanFactory是CglibSubclassingInstantiationStrategy)的instantiate(mbd, beanName, parent)方法来获取bean实例
 2. 获取的实例包裹到BeanWrapperImpl对象中
-3. initBeanWrapper
+3. initBeanWrapper：初始化BeanWrapper内部的editor和conversionService
+4. 返回创建好的BeanWrapper
 
 ##### 1.4.1.2.1 CglibSubclassingInstantiationStrategy的instantiate方法
 
@@ -260,4 +262,117 @@ private Expression[] parseExpressions(String expressionString, ParserContext con
 
 如果有MethodOverride的情况，则调用cglib框架的Enhancer相关方法，创建bd里beanClass的子类，使用反射来调用子类的构造器并返回构造的bean实例
 
+##### 1.4.1.2.2 获取的实例包裹到BeanWrapperImpl对象中，并initBeanWrapper
+
+BeanWrapperImpl的类关系图如下：
+
+![BeanWrapperImpl的类关系图](./BeanWrapperImpl.png)
+
+##### 1.4.1.2.3 BeanFactory的initBeanWrapper方法
+
+```java
+	protected void initBeanWrapper(BeanWrapper bw) {
+		bw.setConversionService(getConversionService());
+		registerCustomEditors(bw);
+	}
+```
+
+第一步是将BeanFactory的ConvertionService传入BeanWrapper，第二步是初始化BeanWrapper的自定义Editor:
+
+```java
+	protected void registerCustomEditors(PropertyEditorRegistry registry) {
+		PropertyEditorRegistrySupport registrySupport =
+				(registry instanceof PropertyEditorRegistrySupport ? (PropertyEditorRegistrySupport) registry : null);
+		if (registrySupport != null) {
+			registrySupport.useConfigValueEditors();
+		}
+		if (!this.propertyEditorRegistrars.isEmpty()) {
+			for (PropertyEditorRegistrar registrar : this.propertyEditorRegistrars) {
+				try {
+					registrar.registerCustomEditors(registry);
+				}
+				catch (BeanCreationException ex) {
+					Throwable rootCause = ex.getMostSpecificCause();
+					if (rootCause instanceof BeanCurrentlyInCreationException) {
+						BeanCreationException bce = (BeanCreationException) rootCause;
+						String bceBeanName = bce.getBeanName();
+						if (bceBeanName != null && isCurrentlyInCreation(bceBeanName)) {
+							if (logger.isDebugEnabled()) {
+								logger.debug("PropertyEditorRegistrar [" + registrar.getClass().getName() +
+										"] failed because it tried to obtain currently created bean '" +
+										ex.getBeanName() + "': " + ex.getMessage());
+							}
+							onSuppressedException(ex);
+							continue;
+						}
+					}
+					throw ex;
+				}
+			}
+		}
+		if (!this.customEditors.isEmpty()) {
+			this.customEditors.forEach((requiredType, editorClass) ->
+					registry.registerCustomEditor(requiredType, BeanUtils.instantiateClass(editorClass)));
+		}
+	}
+```
+
+1. 将BeanWrapper的configValueEditorsActive设为true
+2. 遍历BeanFactory内部的PropertyEditorRegistrars，对每个registar调用```registrar.registerCustomEditors(registry)```方法，默认的BeanFactory会有一个ResourceEditorRegistrar
+3. 遍历BeanFactory内部的CustomPropertyEditors，对每个Editor调用BeanWrapper的```registerCustomEditor(requiredType, BeanUtils.instantiateClass(editorClass)))```方法
+
+###### 1.4.1.2.3.1 ResourceEditorRegistrar的```registrar.registerCustomEditors(registry)```方法
+
+```java
+	@Override
+	public void registerCustomEditors(PropertyEditorRegistry registry) {
+		ResourceEditor baseEditor = new ResourceEditor(this.resourceLoader, this.propertyResolver);
+		doRegisterEditor(registry, Resource.class, baseEditor);
+		doRegisterEditor(registry, ContextResource.class, baseEditor);
+		doRegisterEditor(registry, InputStream.class, new InputStreamEditor(baseEditor));
+		doRegisterEditor(registry, InputSource.class, new InputSourceEditor(baseEditor));
+		doRegisterEditor(registry, File.class, new FileEditor(baseEditor));
+		doRegisterEditor(registry, Path.class, new PathEditor(baseEditor));
+		doRegisterEditor(registry, Reader.class, new ReaderEditor(baseEditor));
+		doRegisterEditor(registry, URL.class, new URLEditor(baseEditor));
+
+		ClassLoader classLoader = this.resourceLoader.getClassLoader();
+		doRegisterEditor(registry, URI.class, new URIEditor(classLoader));
+		doRegisterEditor(registry, Class.class, new ClassEditor(classLoader));
+		doRegisterEditor(registry, Class[].class, new ClassArrayEditor(classLoader));
+
+		if (this.resourceLoader instanceof ResourcePatternResolver) {
+			doRegisterEditor(registry, Resource[].class,
+					new ResourceArrayPropertyEditor((ResourcePatternResolver) this.resourceLoader, this.propertyResolver));
+		}
+	}
+
+	/**
+	 * Override default editor, if possible (since that's what we really mean to do here);
+	 * otherwise register as a custom editor.
+	 */
+	private void doRegisterEditor(PropertyEditorRegistry registry, Class<?> requiredType, PropertyEditor editor) {
+		if (registry instanceof PropertyEditorRegistrySupport) {
+			((PropertyEditorRegistrySupport) registry).overrideDefaultEditor(requiredType, editor);
+		}
+		else {
+			registry.registerCustomEditor(requiredType, editor);
+		}
+	}
+```
+
+代码简洁明了：
+
+1. 根据当前BeanWrapper的resourceLoader和propertyResolver初始化一个ResourceEditor
+2. 将上一步初始化的ResourceEditor放入BeanWrapper的overriddenDefaultEditors并管理Resource、ContextResource类型，**值得注意的是，在实际根据类型获取PropertyEditor时，overriddenDefaultEditors优先级高于defaultEditors，即前者覆盖后者**
+3. 类似的将ResourceEditor装饰（装饰者模式）成InputStreamEditor并关联InputSteam类，等等
+4. 根据当前的resourceLoader的ClassLoader，初始化URIEditor、ClassEditor、ClassArrayEditor并关联
+
+###### 1.4.1.2.3.2 BeanWrapper的```registerCustomEditor(requiredType, BeanUtils.instantiateClass(editorClass)))```方法
+
+## 1.5 MergedBeanDefinitionPostProcessor修改bd
+
+在AbstractApplicationContext的refresh方法中，获取完新BeanFactory后```prepareBeanFactory(beanFactory)```的过程中，
+
+## 
 

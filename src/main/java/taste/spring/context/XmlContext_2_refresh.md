@@ -3,80 +3,80 @@
 内容接续[第一节:configLocation参数处理](./XmlContext_1_process_config.md)，在处理完configLocation并执行完父类的构造方法后，正式开始扫描Xml并进行bean的构造与存储，即执行ClassPathXmlApplicationContext类的父类AbstractApplicationContext的refresh()方法，代码如下：
 
 ```java
-	/**
-	 * Load or refresh the persistent representation of the configuration,
-	 * which might an XML file, properties file, or relational database schema.
-	 * <p>As this is a startup method, it should destroy already created singletons
-	 * if it fails, to avoid dangling resources. In other words, after invocation
-	 * of that method, either all or no singletons at all should be instantiated.
-	 * @throws BeansException if the bean factory could not be initialized
-	 * @throws IllegalStateException if already initialized and multiple refresh
-	 * attempts are not supported
-	 */
-	@Override
-	public void refresh() throws BeansException, IllegalStateException {
-		synchronized (this.startupShutdownMonitor) {
-			// Prepare this context for refreshing.
-			prepareRefresh();
+    /**
+     * Load or refresh the persistent representation of the configuration,
+     * which might an XML file, properties file, or relational database schema.
+     * <p>As this is a startup method, it should destroy already created singletons
+     * if it fails, to avoid dangling resources. In other words, after invocation
+     * of that method, either all or no singletons at all should be instantiated.
+     * @throws BeansException if the bean factory could not be initialized
+     * @throws IllegalStateException if already initialized and multiple refresh
+     * attempts are not supported
+     */
+    @Override
+    public void refresh() throws BeansException, IllegalStateException {
+        synchronized (this.startupShutdownMonitor) {
+            // Prepare this context for refreshing.
+            prepareRefresh();
 
-			// Tell the subclass to refresh the internal bean factory.
-			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
+            // Tell the subclass to refresh the internal bean factory.
+            ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
-			// Prepare the bean factory for use in this context.
-			prepareBeanFactory(beanFactory);
+            // Prepare the bean factory for use in this context.
+            prepareBeanFactory(beanFactory);
 
-			try {
-				// Allows post-processing of the bean factory in context subclasses.
-				postProcessBeanFactory(beanFactory);
+            try {
+                // Allows post-processing of the bean factory in context subclasses.
+                postProcessBeanFactory(beanFactory);
 
-				// Invoke factory processors registered as beans in the context.
-				invokeBeanFactoryPostProcessors(beanFactory);
+                // Invoke factory processors registered as beans in the context.
+                invokeBeanFactoryPostProcessors(beanFactory);
 
-				// Register bean processors that intercept bean creation.
-				registerBeanPostProcessors(beanFactory);
+                // Register bean processors that intercept bean creation.
+                registerBeanPostProcessors(beanFactory);
 
-				// Initialize message source for this context.
-				initMessageSource();
+                // Initialize message source for this context.
+                initMessageSource();
 
-				// Initialize event multicaster for this context.
-				initApplicationEventMulticaster();
+                // Initialize event multicaster for this context.
+                initApplicationEventMulticaster();
 
-				// Initialize other special beans in specific context subclasses.
-				onRefresh();
+                // Initialize other special beans in specific context subclasses.
+                onRefresh();
 
-				// Check for listener beans and register them.
-				registerListeners();
+                // Check for listener beans and register them.
+                registerListeners();
 
-				// Instantiate all remaining (non-lazy-init) singletons.
-				finishBeanFactoryInitialization(beanFactory);
+                // Instantiate all remaining (non-lazy-init) singletons.
+                finishBeanFactoryInitialization(beanFactory);
 
-				// Last step: publish corresponding event.
-				finishRefresh();
-			}
+                // Last step: publish corresponding event.
+                finishRefresh();
+            }
 
-			catch (BeansException ex) {
-				if (logger.isWarnEnabled()) {
-					logger.warn("Exception encountered during context initialization - " +
-							"cancelling refresh attempt: " + ex);
-				}
+            catch (BeansException ex) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Exception encountered during context initialization - " +
+                            "cancelling refresh attempt: " + ex);
+                }
 
-				// Destroy already created singletons to avoid dangling resources.
-				destroyBeans();
+                // Destroy already created singletons to avoid dangling resources.
+                destroyBeans();
 
-				// Reset 'active' flag.
-				cancelRefresh(ex);
+                // Reset 'active' flag.
+                cancelRefresh(ex);
 
-				// Propagate exception to caller.
-				throw ex;
-			}
+                // Propagate exception to caller.
+                throw ex;
+            }
 
-			finally {
-				// Reset common introspection caches in Spring's core, since we
-				// might not ever need metadata for singleton beans anymore...
-				resetCommonCaches();
-			}
-		}
-	}
+            finally {
+                // Reset common introspection caches in Spring's core, since we
+                // might not ever need metadata for singleton beans anymore...
+                resetCommonCaches();
+            }
+        }
+    }
 ```
 
 整个过程分下面的几个步骤：
@@ -104,13 +104,13 @@ prepareRefresh方法的执行过程如方法名所示，主要进行环境变量
 4. 初始化earlyApplicationListeners和applicationListeners，当前用例里为空，注意存储使用的是LinkedHashSet，是有序set
 5. 初始化earlyApplicationEvents为空的LinkedHashSet
 
-## 1.2 重新加载beanFactory：ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory()
+## 1.2 重新加载新的beanFactory：ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory()
 
 ```java
-	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
-		refreshBeanFactory();
-		return getBeanFactory();
-	}
+    protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
+        refreshBeanFactory();
+        return getBeanFactory();
+    }
 ```
 
 方法中主要是调用了方法refreshBeanFactory()，然后返回getBeanFactory()的执行结果，这两个方法在AbstractApplicationContext中均为抽象方法，对于本例来说，实际由子类
@@ -121,30 +121,30 @@ AbstractRefreshableApplicationContext实现
 此方法的具体代码如下：
 
 ```java
-	/**
-	 * This implementation performs an actual refresh of this context's underlying
-	 * bean factory, shutting down the previous bean factory (if any) and
-	 * initializing a fresh bean factory for the next phase of the context's lifecycle.
-	 */
-	@Override
-	protected final void refreshBeanFactory() throws BeansException {
-		if (hasBeanFactory()) {
-			destroyBeans();
-			closeBeanFactory();
-		}
-		try {
-			DefaultListableBeanFactory beanFactory = createBeanFactory();
-			beanFactory.setSerializationId(getId());
-			customizeBeanFactory(beanFactory);
-			loadBeanDefinitions(beanFactory);
-			synchronized (this.beanFactoryMonitor) {
-				this.beanFactory = beanFactory;
-			}
-		}
-		catch (IOException ex) {
-			throw new ApplicationContextException("I/O error parsing bean definition source for " + getDisplayName(), ex);
-		}
-	}
+    /**
+     * This implementation performs an actual refresh of this context's underlying
+     * bean factory, shutting down the previous bean factory (if any) and
+     * initializing a fresh bean factory for the next phase of the context's lifecycle.
+     */
+    @Override
+    protected final void refreshBeanFactory() throws BeansException {
+        if (hasBeanFactory()) {
+            destroyBeans();
+            closeBeanFactory();
+        }
+        try {
+            DefaultListableBeanFactory beanFactory = createBeanFactory();
+            beanFactory.setSerializationId(getId());
+            customizeBeanFactory(beanFactory);
+            loadBeanDefinitions(beanFactory);
+            synchronized (this.beanFactoryMonitor) {
+                this.beanFactory = beanFactory;
+            }
+        }
+        catch (IOException ex) {
+            throw new ApplicationContextException("I/O error parsing bean definition source for " + getDisplayName(), ex);
+        }
+    }
 ```
 
 执行过程分析：
@@ -160,9 +160,9 @@ AbstractRefreshableApplicationContext实现
 #### 1.2.1.1 初始化BeanFactory:createBeanFactory()
 
 ```java
-	protected DefaultListableBeanFactory createBeanFactory() {
-		return new DefaultListableBeanFactory(getInternalParentBeanFactory());
-	}
+    protected DefaultListableBeanFactory createBeanFactory() {
+        return new DefaultListableBeanFactory(getInternalParentBeanFactory());
+    }
 ```
 
 注意到初始化的BeanFactory类型为DefaultListableBeanFactory，且此处调用的是带参构造方法，参数类型为BeanFactory，值为getInternalParentBeanFactory()方法的返回值，实例初始化的过程可分为三步
@@ -181,8 +181,8 @@ AbstractRefreshableApplicationContext实现
 ##### 1.2.1.1.2 getInternalParentBeanFactory()
 
 ```java
-	return (getParent() instanceof ConfigurableApplicationContext ?
-				((ConfigurableApplicationContext) getParent()).getBeanFactory() : getParent());
+    return (getParent() instanceof ConfigurableApplicationContext ?
+                ((ConfigurableApplicationContext) getParent()).getBeanFactory() : getParent());
 ```
 
 如果this.parent变量指向的是ConfigurableApplicationContext，则返回this.parent.getBeanFactory()，否则返回this.parent，对于当前用例，this.parent == null，所以返回null
@@ -195,21 +195,21 @@ AbstractRefreshableApplicationContext实现
 AbstractAutowireCapableBeanFactory类主要实现了bean的创建、初始化、参数注入、构造方法注入等功能
 
 ```java
-	public AbstractAutowireCapableBeanFactory(@Nullable BeanFactory parentBeanFactory) {
-		this();
-		setParentBeanFactory(parentBeanFactory);
-	}
+    public AbstractAutowireCapableBeanFactory(@Nullable BeanFactory parentBeanFactory) {
+        this();
+        setParentBeanFactory(parentBeanFactory);
+    }
 ```
 
 this()调用的无参构造方法:
 
 ```java
-	public AbstractAutowireCapableBeanFactory() {
-		super();
-		ignoreDependencyInterface(BeanNameAware.class);
-		ignoreDependencyInterface(BeanFactoryAware.class);
-		ignoreDependencyInterface(BeanClassLoaderAware.class);
-	}
+    public AbstractAutowireCapableBeanFactory() {
+        super();
+        ignoreDependencyInterface(BeanNameAware.class);
+        ignoreDependencyInterface(BeanFactoryAware.class);
+        ignoreDependencyInterface(BeanClassLoaderAware.class);
+    }
 ```
 
 super()调用的父类无参构造方法，沿继承链上溯到DefaultSingletonBeanRegistry类中，
@@ -220,18 +220,18 @@ super()调用的父类无参构造方法，沿继承链上溯到DefaultSingleton
 
 1. 存储各种bean的缓存：
 
-- Cache of singleton objects: bean name to bean instance. ```private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);```
-- Cache of singleton factories: bean name to ObjectFactory.```private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);```
-- Cache of early singleton objects: bean name to bean instance.```private final Set<String> registeredSingletons = new LinkedHashSet<>(256);```
-- Disposable bean instances: bean name to disposable instance.```private final Map<String, Object> disposableBeans = new LinkedHashMap<>();```
+    - Cache of singleton objects: bean name to bean instance. ```private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);```
+    - Cache of singleton factories: bean name to ObjectFactory.```private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);```
+    - Cache of early singleton objects: bean name to bean instance.```private final Set<String> registeredSingletons = new LinkedHashSet<>(256);```
+    - Disposable bean instances: bean name to disposable instance.```private final Map<String, Object> disposableBeans = new LinkedHashMap<>();```
 
-注意，存储单例对象的缓存应该是主要缓存，且会被并发访问，因此使用ConcurrentHashMap保证线程安全的同时，初始容量设置为256来减少初期的Map扩容
+    注意，存储单例对象的缓存应该是主要缓存，且会被并发访问，因此使用ConcurrentHashMap保证线程安全的同时，初始容量设置为256来减少初期的Map扩容
 
 2. 存储bean和bean关系的各种Map:
 
-- Map between containing bean names: bean name to Set of bean names that the bean contains.```private final Map<String, Set<String>> containedBeanMap = new ConcurrentHashMap<>(16);```
-- Map between dependent bean names: bean name to Set of dependent bean names.```private final Map<String, Set<String>> dependentBeanMap = new ConcurrentHashMap<>(64);```
-- Map between depending bean names: bean name to Set of bean names for the bean's dependencies.```private final Map<String, Set<String>> dependenciesForBeanMap = new ConcurrentHashMap<>(64);```
+    - Map between containing bean names: bean name to Set of bean names that the bean contains.```private final Map<String, Set<String>> containedBeanMap = new ConcurrentHashMap<>(16);```
+    - Map between dependent bean names: bean name to Set of dependent bean names.```private final Map<String, Set<String>> dependentBeanMap = new ConcurrentHashMap<>(64);```
+    - Map between depending bean names: bean name to Set of bean names for the bean's dependencies.```private final Map<String, Set<String>> dependenciesForBeanMap = new ConcurrentHashMap<>(64);```
 
 除了存储创建好的Bean的缓存外，还有一些属性，表征创建过程状态的如singletonsCurrentlyInCreation，inCreationCheckExclusions，singletonsCurrentlyInDestruction等。
 
@@ -243,19 +243,19 @@ DefaultSingletonBeanRegistry初始化完成后，沿继承链轮到DefaultListab
 
 1. bean过程处理相关的类和flag
 
-- ClassLoader：
-- beanMetaData的flag：是否缓存metaData，默认true
-- propertyEditorRegistrars：Set\<PropertyEditorRegistrar>类型
-- ```Map<Class<?>, Class<? extends PropertyEditor>> customEditors```，自定义的PeropertyEditors
-- ```List<StringValueResolver> embeddedValueResolvers```:String resolvers to apply e.g. to annotation attribute values.
-- ```List<BeanPostProcessor> beanPostProcessors```
+    - ClassLoader：
+    - beanMetaData的flag：是否缓存metaData，默认true
+    - propertyEditorRegistrars：Set\<PropertyEditorRegistrar>类型
+    - ```Map<Class<?>, Class<? extends PropertyEditor>> customEditors```，自定义的PeropertyEditors
+    - ```List<StringValueResolver> embeddedValueResolvers```:String resolvers to apply e.g. to annotation attribute values.
+    - ```List<BeanPostProcessor> beanPostProcessors```
 
 2. Bean缓存变量和过程变量
 
-- ```Map<String, Scope> scopes```:Map from scope identifier String to corresponding Scope.
-- ```Map<String, RootBeanDefinition> mergedBeanDefinitions```:Map from bean name to merged RootBeanDefinition.
-- ```Set<String> alreadyCreated```:Names of beans that have already been created at least once.
-- ```ThreadLocal<Object> prototypesCurrentlyInCreation```:Names of beans that are currently in creation.
+    - ```Map<String, Scope> scopes```:Map from scope identifier String to corresponding Scope.
+    - ```Map<String, RootBeanDefinition> mergedBeanDefinitions```:Map from bean name to merged RootBeanDefinition.
+    - ```Set<String> alreadyCreated```:Names of beans that have already been created at least once.
+    - ```ThreadLocal<Object> prototypesCurrentlyInCreation```:Names of beans that are currently in creation.
 
 AbstractBeanFactory实例初始化完成后，沿继承链回到AbstractAutowireCapableBeanFactory类的初始化
 
@@ -295,37 +295,37 @@ AbstractBeanFactory实例初始化完成后，沿继承链回到AbstractAutowire
 将所有的bean定义加载到内部的beanFactory，ClassPathXmlApplicationContext的父类AbstractXmlApplicationContext复写了这个方法：
 
 ```java
-	@Override
-	protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
-		// Create a new XmlBeanDefinitionReader for the given BeanFactory.
-		XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
+    @Override
+    protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
+        // Create a new XmlBeanDefinitionReader for the given BeanFactory.
+        XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
 
-		// Configure the bean definition reader with this context's
-		// resource loading environment.
-		beanDefinitionReader.setEnvironment(this.getEnvironment());
-		beanDefinitionReader.setResourceLoader(this);
-		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
+        // Configure the bean definition reader with this context's
+        // resource loading environment.
+        beanDefinitionReader.setEnvironment(this.getEnvironment());
+        beanDefinitionReader.setResourceLoader(this);
+        beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
 
-		// Allow a subclass to provide custom initialization of the reader,
-		// then proceed with actually loading the bean definitions.
-		initBeanDefinitionReader(beanDefinitionReader);
-		loadBeanDefinitions(beanDefinitionReader);
-	}
+        // Allow a subclass to provide custom initialization of the reader,
+        // then proceed with actually loading the bean definitions.
+        initBeanDefinitionReader(beanDefinitionReader);
+        loadBeanDefinitions(beanDefinitionReader);
+    }
 ```
 
 XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionReader的environment,resourceLoader和entityResolver变量，initBeanDefinitionReader(beanDefinitionReader)方法把this.validating变量赋值给beanDefinationReader.validating，最后的loadBeanDefinitions(beanDefinitionReader)方法最终通过beanDefinationReader的帮助，将xml里的bean声明加载出来，加载的顺序如代码所示：
 
 ```java
-	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
-		Resource[] configResources = getConfigResources();
-		if (configResources != null) {
-			reader.loadBeanDefinitions(configResources);
-		}
-		String[] configLocations = getConfigLocations();
-		if (configLocations != null) {
-			reader.loadBeanDefinitions(configLocations);
-		}
-	}
+    protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
+        Resource[] configResources = getConfigResources();
+        if (configResources != null) {
+            reader.loadBeanDefinitions(configResources);
+        }
+        String[] configLocations = getConfigLocations();
+        if (configLocations != null) {
+            reader.loadBeanDefinitions(configLocations);
+        }
+    }
 ```
 
 对于AbstractXmlApplicationContext，configResources为null，在本用例中，configLocations={"application-context.xml"},
@@ -340,44 +340,44 @@ XmlBeanDefinitionReader的初始化和赋值，并分别初始化beanDefinitionR
 实际调用的是抽象类AbstractBeanDefinitionReader的方法
 
 ```java
-	public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
-		ResourceLoader resourceLoader = getResourceLoader();
-		if (resourceLoader == null) {
-			throw new BeanDefinitionStoreException(
-					"Cannot load bean definitions from location [" + location + "]: no ResourceLoader available");
-		}
+    public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
+        ResourceLoader resourceLoader = getResourceLoader();
+        if (resourceLoader == null) {
+            throw new BeanDefinitionStoreException(
+                    "Cannot load bean definitions from location [" + location + "]: no ResourceLoader available");
+        }
 
-		if (resourceLoader instanceof ResourcePatternResolver) {
-			// Resource pattern matching available.
-			try {
-				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
-				int count = loadBeanDefinitions(resources);
-				if (actualResources != null) {
-					Collections.addAll(actualResources, resources);
-				}
-				if (logger.isTraceEnabled()) {
-					logger.trace("Loaded " + count + " bean definitions from location pattern [" + location + "]");
-				}
-				return count;
-			}
-			catch (IOException ex) {
-				throw new BeanDefinitionStoreException(
-						"Could not resolve bean definition resource pattern [" + location + "]", ex);
-			}
-		}
-		else {
-			// Can only load single resources by absolute URL.
-			Resource resource = resourceLoader.getResource(location);
-			int count = loadBeanDefinitions(resource);
-			if (actualResources != null) {
-				actualResources.add(resource);
-			}
-			if (logger.isTraceEnabled()) {
-				logger.trace("Loaded " + count + " bean definitions from location [" + location + "]");
-			}
-			return count;
-		}
-	}
+        if (resourceLoader instanceof ResourcePatternResolver) {
+            // Resource pattern matching available.
+            try {
+                Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
+                int count = loadBeanDefinitions(resources);
+                if (actualResources != null) {
+                    Collections.addAll(actualResources, resources);
+                }
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Loaded " + count + " bean definitions from location pattern [" + location + "]");
+                }
+                return count;
+            }
+            catch (IOException ex) {
+                throw new BeanDefinitionStoreException(
+                        "Could not resolve bean definition resource pattern [" + location + "]", ex);
+            }
+        }
+        else {
+            // Can only load single resources by absolute URL.
+            Resource resource = resourceLoader.getResource(location);
+            int count = loadBeanDefinitions(resource);
+            if (actualResources != null) {
+                actualResources.add(resource);
+            }
+            if (logger.isTraceEnabled()) {
+                logger.trace("Loaded " + count + " bean definitions from location [" + location + "]");
+            }
+            return count;
+        }
+    }
 ```
 
 在这里，入参location是字符串"application-context.xml"，actualResources为null，程序执行过程如下
@@ -417,49 +417,49 @@ AbstractBeanDefinitionReader获取到Resource数组后，会迭代数组元素�
 在这一步之前，所有的beanDefinition已经被读取并存入beanFactory中，这一步在bean初始化之前，准备一些环境相关的bean：
 
 ```java
-	protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-		// Tell the internal bean factory to use the context's class loader etc.
-		beanFactory.setBeanClassLoader(getClassLoader());
-		beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
-		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
+    protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+        // Tell the internal bean factory to use the context's class loader etc.
+        beanFactory.setBeanClassLoader(getClassLoader());
+        beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
+        beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
 
-		// Configure the bean factory with context callbacks.
-		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
-		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
-		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
-		beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
-		beanFactory.ignoreDependencyInterface(ApplicationEventPublisherAware.class);
-		beanFactory.ignoreDependencyInterface(MessageSourceAware.class);
-		beanFactory.ignoreDependencyInterface(ApplicationContextAware.class);
+        // Configure the bean factory with context callbacks.
+        beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+        beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
+        beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
+        beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
+        beanFactory.ignoreDependencyInterface(ApplicationEventPublisherAware.class);
+        beanFactory.ignoreDependencyInterface(MessageSourceAware.class);
+        beanFactory.ignoreDependencyInterface(ApplicationContextAware.class);
 
-		// BeanFactory interface not registered as resolvable type in a plain factory.
-		// MessageSource registered (and found for autowiring) as a bean.
-		beanFactory.registerResolvableDependency(BeanFactory.class, beanFactory);
-		beanFactory.registerResolvableDependency(ResourceLoader.class, this);
-		beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
-		beanFactory.registerResolvableDependency(ApplicationContext.class, this);
+        // BeanFactory interface not registered as resolvable type in a plain factory.
+        // MessageSource registered (and found for autowiring) as a bean.
+        beanFactory.registerResolvableDependency(BeanFactory.class, beanFactory);
+        beanFactory.registerResolvableDependency(ResourceLoader.class, this);
+        beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
+        beanFactory.registerResolvableDependency(ApplicationContext.class, this);
 
-		// Register early post-processor for detecting inner beans as ApplicationListeners.
-		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
+        // Register early post-processor for detecting inner beans as ApplicationListeners.
+        beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
-		// Detect a LoadTimeWeaver and prepare for weaving, if found.
-		if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
-			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
-			// Set a temporary ClassLoader for type matching.
-			beanFactory.setTempClassLoader(new ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));
-		}
+        // Detect a LoadTimeWeaver and prepare for weaving, if found.
+        if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
+            beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
+            // Set a temporary ClassLoader for type matching.
+            beanFactory.setTempClassLoader(new ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));
+        }
 
-		// Register default environment beans.
-		if (!beanFactory.containsLocalBean(ENVIRONMENT_BEAN_NAME)) {
-			beanFactory.registerSingleton(ENVIRONMENT_BEAN_NAME, getEnvironment());
-		}
-		if (!beanFactory.containsLocalBean(SYSTEM_PROPERTIES_BEAN_NAME)) {
-			beanFactory.registerSingleton(SYSTEM_PROPERTIES_BEAN_NAME, getEnvironment().getSystemProperties());
-		}
-		if (!beanFactory.containsLocalBean(SYSTEM_ENVIRONMENT_BEAN_NAME)) {
-			beanFactory.registerSingleton(SYSTEM_ENVIRONMENT_BEAN_NAME, getEnvironment().getSystemEnvironment());
-		}
-	}
+        // Register default environment beans.
+        if (!beanFactory.containsLocalBean(ENVIRONMENT_BEAN_NAME)) {
+            beanFactory.registerSingleton(ENVIRONMENT_BEAN_NAME, getEnvironment());
+        }
+        if (!beanFactory.containsLocalBean(SYSTEM_PROPERTIES_BEAN_NAME)) {
+            beanFactory.registerSingleton(SYSTEM_PROPERTIES_BEAN_NAME, getEnvironment().getSystemProperties());
+        }
+        if (!beanFactory.containsLocalBean(SYSTEM_ENVIRONMENT_BEAN_NAME)) {
+            beanFactory.registerSingleton(SYSTEM_ENVIRONMENT_BEAN_NAME, getEnvironment().getSystemEnvironment());
+        }
+    }
 ```
 
 1. 设置BeanClassLoader：与当前ApplicationContext相同
@@ -475,6 +475,37 @@ AbstractBeanDefinitionReader获取到Resource数组后，会迭代数组元素�
 11. 将上下文内部的Environment内部的SystemProperties注册为名叫"systemProperties"的单例bean
 12. 将上下文内部的Environment内部的SystemEnvironment注册为名叫"systemEnvironment"的单例bean
 
+在这里初始化并添加了两个BeanPostProcessor类型的对象:
+
+- ApplicationContextAwareProcessor：这个类对Aware接口的bean有效，在bean实例初始化之前把ApplicationContext中的属性注入到bean中：
+
+```java
+    private void invokeAwareInterfaces(Object bean) {
+        if (bean instanceof Aware) {
+            if (bean instanceof EnvironmentAware) {
+                ((EnvironmentAware) bean).setEnvironment(this.applicationContext.getEnvironment());
+            }
+            if (bean instanceof EmbeddedValueResolverAware) {
+                ((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(this.embeddedValueResolver);
+            }
+            if (bean instanceof ResourceLoaderAware) {
+                ((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
+            }
+            if (bean instanceof ApplicationEventPublisherAware) {
+                ((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
+            }
+            if (bean instanceof MessageSourceAware) {
+                ((MessageSourceAware) bean).setMessageSource(this.applicationContext);
+            }
+            if (bean instanceof ApplicationContextAware) {
+                ((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
+            }
+        }
+    }
+```
+
+- ApplicationListenerDetector：这个BeanPostProcessor对ApplicationListener接口的bean有效，在Bean初始化结束后，```this.applicationContext.addApplicationListener((ApplicationListener<?>) bean);```，值得一提的是，这个类覆写了.equals方法为```return (this == other || (other instanceof ApplicationListenerDetector && this.applicationContext == ((ApplicationListenerDetector) other).applicationContext))```，这样只要内部存有相同的applicationContext，则必定equals返回true，这样做的目的是保证在applicationContext存储BeanProcessor的map中，只有一个实例（ApplicationContext内部使用CopyOnWriteList存储BeanPostProcessor，而其remove时根据==和.equals()方法来判断对象是否存在）
+
 ## 1.4. 执行子类的postProcessBeanFactory(beanFactory)方法
 
 在AbstractApplicationContext里为空方法体
@@ -483,9 +514,14 @@ AbstractBeanDefinitionReader获取到Resource数组后，会迭代数组元素�
 
 此方法初始化并调用所有BeanFactoryPostProcessor类型的bean，完成后处理 "loadTimeWeaver"，在当前用例里没有定义任何的BeanFactoryPostProcessor
 
-## 1.6. 注册BeanPostProcessors：registerBeanPostProcessors(beanFactory);
+## 1.6. 注册BeanPostProcessors：registerBeanPostProcessors(beanFactory)
 
-在当前上下文中未定义BeanPostProcessor
+1. 新增一个BeanPostProcessorChecker类型的BeanPostProcessor
+2. 根据priority和order配置**顺序**注册实现了PriorityOrdered接口的BeanPostProcessor
+3. 根据order配置**顺序**注册实现了Ordered接口的BeanPostProcessor
+4. 注册其余的BeanPostProcessor
+5. 注册实现了MergedBeanDefinitionPostProcessor接口的BeanPostProcessor，注意，在往AbstractBeanFactory注册BeanPostProcessor时，会先remove再add以保证新注册的在List里排在后面
+6. 新建一个ApplicationListenerDetector，添加到BeanPostProcessor最后（由于其复写了.equals()方法因此仍旧会移除原有的所有内部applicationContext相同的实例）
 
 ## 1.7. 初始化MessageSource
 
@@ -508,36 +544,36 @@ AbstractBeanDefinitionReader获取到Resource数组后，会迭代数组元素�
 在beanFactory中的bean定义、环境bean、listener、processor全部准备好后，开始初始化其他还未初始化的单例bean，具体实现在AbstractApplicationContext的finishBeanFactoryInitialization方法：
 
 ```java
-	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
-		// Initialize conversion service for this context.
-		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
-				beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
-			beanFactory.setConversionService(
-					beanFactory.getBean(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class));
-		}
+    protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
+        // Initialize conversion service for this context.
+        if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
+                beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
+            beanFactory.setConversionService(
+                    beanFactory.getBean(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class));
+        }
 
-		// Register a default embedded value resolver if no bean post-processor
-		// (such as a PropertyPlaceholderConfigurer bean) registered any before:
-		// at this point, primarily for resolution in annotation attribute values.
-		if (!beanFactory.hasEmbeddedValueResolver()) {
-			beanFactory.addEmbeddedValueResolver(strVal -> getEnvironment().resolvePlaceholders(strVal));
-		}
+        // Register a default embedded value resolver if no bean post-processor
+        // (such as a PropertyPlaceholderConfigurer bean) registered any before:
+        // at this point, primarily for resolution in annotation attribute values.
+        if (!beanFactory.hasEmbeddedValueResolver()) {
+            beanFactory.addEmbeddedValueResolver(strVal -> getEnvironment().resolvePlaceholders(strVal));
+        }
 
-		// Initialize LoadTimeWeaverAware beans early to allow for registering their transformers early.
-		String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware.class, false, false);
-		for (String weaverAwareName : weaverAwareNames) {
-			getBean(weaverAwareName);
-		}
+        // Initialize LoadTimeWeaverAware beans early to allow for registering their transformers early.
+        String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware.class, false, false);
+        for (String weaverAwareName : weaverAwareNames) {
+            getBean(weaverAwareName);
+        }
 
-		// Stop using the temporary ClassLoader for type matching.
-		beanFactory.setTempClassLoader(null);
+        // Stop using the temporary ClassLoader for type matching.
+        beanFactory.setTempClassLoader(null);
 
-		// Allow for caching all bean definition metadata, not expecting further changes.
-		beanFactory.freezeConfiguration();
+        // Allow for caching all bean definition metadata, not expecting further changes.
+        beanFactory.freezeConfiguration();
 
-		// Instantiate all remaining (non-lazy-init) singletons.
-		beanFactory.preInstantiateSingletons();
-	}
+        // Instantiate all remaining (non-lazy-init) singletons.
+        beanFactory.preInstantiateSingletons();
+    }
 ```
 
 1. 如果定义了"conversionService"，则使用
@@ -549,62 +585,62 @@ AbstractBeanDefinitionReader获取到Resource数组后，会迭代数组元素�
 ### 1.11.1 初始化自定义的单例Bean
 
 ```java
-	@Override
-	public void preInstantiateSingletons() throws BeansException {
-		if (logger.isTraceEnabled()) {
-			logger.trace("Pre-instantiating singletons in " + this);
-		}
+    @Override
+    public void preInstantiateSingletons() throws BeansException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Pre-instantiating singletons in " + this);
+        }
 
-		// Iterate over a copy to allow for init methods which in turn register new bean definitions.
-		// While this may not be part of the regular factory bootstrap, it does otherwise work fine.
-		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
+        // Iterate over a copy to allow for init methods which in turn register new bean definitions.
+        // While this may not be part of the regular factory bootstrap, it does otherwise work fine.
+        List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
-		// Trigger initialization of all non-lazy singleton beans...
-		for (String beanName : beanNames) {
-			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
-			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
-				if (isFactoryBean(beanName)) {
-					Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
-					if (bean instanceof FactoryBean) {
-						final FactoryBean<?> factory = (FactoryBean<?>) bean;
-						boolean isEagerInit;
-						if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
-							isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>)
-											((SmartFactoryBean<?>) factory)::isEagerInit,
-									getAccessControlContext());
-						}
-						else {
-							isEagerInit = (factory instanceof SmartFactoryBean &&
-									((SmartFactoryBean<?>) factory).isEagerInit());
-						}
-						if (isEagerInit) {
-							getBean(beanName);
-						}
-					}
-				}
-				else {
-					getBean(beanName);
-				}
-			}
-		}
+        // Trigger initialization of all non-lazy singleton beans...
+        for (String beanName : beanNames) {
+            RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+            if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+                if (isFactoryBean(beanName)) {
+                    Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
+                    if (bean instanceof FactoryBean) {
+                        final FactoryBean<?> factory = (FactoryBean<?>) bean;
+                        boolean isEagerInit;
+                        if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
+                            isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>)
+                                            ((SmartFactoryBean<?>) factory)::isEagerInit,
+                                    getAccessControlContext());
+                        }
+                        else {
+                            isEagerInit = (factory instanceof SmartFactoryBean &&
+                                    ((SmartFactoryBean<?>) factory).isEagerInit());
+                        }
+                        if (isEagerInit) {
+                            getBean(beanName);
+                        }
+                    }
+                }
+                else {
+                    getBean(beanName);
+                }
+            }
+        }
 
-		// Trigger post-initialization callback for all applicable beans...
-		for (String beanName : beanNames) {
-			Object singletonInstance = getSingleton(beanName);
-			if (singletonInstance instanceof SmartInitializingSingleton) {
-				final SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
-				if (System.getSecurityManager() != null) {
-					AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-						smartSingleton.afterSingletonsInstantiated();
-						return null;
-					}, getAccessControlContext());
-				}
-				else {
-					smartSingleton.afterSingletonsInstantiated();
-				}
-			}
-		}
-	}
+        // Trigger post-initialization callback for all applicable beans...
+        for (String beanName : beanNames) {
+            Object singletonInstance = getSingleton(beanName);
+            if (singletonInstance instanceof SmartInitializingSingleton) {
+                final SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
+                if (System.getSecurityManager() != null) {
+                    AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                        smartSingleton.afterSingletonsInstantiated();
+                        return null;
+                    }, getAccessControlContext());
+                }
+                else {
+                    smartSingleton.afterSingletonsInstantiated();
+                }
+            }
+        }
+    }
 ```
 
 1. 复制当前的beanDefinitionNames数组到方法本地变量进行迭代，这样允许在bean初始化过程中注册新的bean到beanDefinitionNames而不影响迭代过程
