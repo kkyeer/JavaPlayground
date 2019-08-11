@@ -168,13 +168,11 @@ private Expression[] parseExpressions(String expressionString, ParserContext con
 
 ## 1.4 doCreateBean方法
 
-1. 初始化BeanWrapper为null
-2. 从factoryBeanInstanceCache中获取已经缓存的未完全完成的FactoryBean对应的BeanWrapper
-3. 如果上一步未获取到非空的BeanWrapper，则调用BeanFactory的createBeanInstance方法，选取合适的构造策略来构建BeanWrapper
-4. 调用可能的MergedBeanDefinitionPostProcessor修改bd，修改完成后mbd.postProcessed = true
-5. 如果允许循环引用，则提前缓存创建中的单例Bean
-6. 解析BeanWrapper中的PropertyValue并set到Bean：```populateBean(beanName, mbd, instanceWrapper);```
-7. 
+1. 初始化BeanWrapper为null，从factoryBeanInstanceCache中获取已经缓存的未完全完成的FactoryBean对应的BeanWrapper,如果上一步未获取到BeanWrapper，则调用BeanFactory的createBeanInstance方法，选取合适的构造策略来构建BeanWrapper
+2. 调用可能的MergedBeanDefinitionPostProcessor修改bd，修改完成后mbd.postProcessed = true
+3. 如果允许循环引用，则提前缓存创建中的单例Bean
+4. 解析BeanWrapper中的PropertyValue
+5. 
 
 ### 1.4.1 createBeanInstance方法
 
@@ -397,7 +395,7 @@ BeanWrapperImpl的类关系图如下：
 
 调用到DefaultSingletonBeanRegistry类的方法：
 
-```
+```java
     protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
         Assert.notNull(singletonFactory, "Singleton factory must not be null");
         synchronized (this.singletonObjects) {
@@ -427,10 +425,14 @@ BeanWrapperImpl的类关系图如下：
 4. 如果BeanFactory内部有InstantiationAwareBeanPostProcessor实例，则
     1. 调用BeanFactory的filterPropertyDescriptorsForDependencyCheck方法过滤PropertyValue，过滤掉ignoredDependencyTypes和ignoredDependencyInterfaces中定义的类型
     2. 调用InstantiationAwareBeanPostProcessor的postProcessProperties处理PropertyValue
-5. 检查依赖的PropertyValue是否已经满足
-6. 调用applyPropertyValues方法来解析并set到Bean
+5. 检查依赖的PropertyValue
+6. 调用applyPropertyValues方法来解析并把PropertyValue解析到Bean
 
-#### 1.4.4.1 非自动注入的PropertyValue处理：applyPropertyValues方法
+#### 1.4.4.1 按Name自动注入的PropertyValue处理：autowireByName方法
+
+#### 1.4.4.2 按类型自动注入的PropertyValue处理：autowireByType方法
+
+#### 1.4.4.3 applyPropertyValues方法
 
 ```java
     protected void applyPropertyValues(String beanName, BeanDefinition mbd, BeanWrapper bw, PropertyValues pvs) {
@@ -522,4 +524,298 @@ BeanWrapperImpl的类关系图如下：
     }
 ```
 
-1. 
+下面pvs表示传入的PropertyValues
+
+1. 如果传入的pvs内部无PropertyValue，则不需要处理PropertyValue，直接返回
+2. 判断pvs是否已经是MutablePropertyValues对象，如果是，进一步判断是否pvs已经Converted，是的话直接调用BeanWrapper的```setPropertyValues```方法后返回
+3. 获取TypeConverter：读取BeanFactory内部的typeConverter属性，null的话用BeanWrapper
+4. 初始化valueResolver：```new BeanDefinitionValueResolver(this, beanName, mbd, converter)```
+5. 解析PropertyValue：
+    1. 获取PropertyName
+    2. 获取原PropertyValue
+    3. 调用valueResolver的resolveValueIfNecessary来resolve原PropertyValue，该方法里根据传入的PropertyValue的类型来决定使用哪种策略，下面pv代表当前在resolve的PropertyValue：
+        1. RuntimeBeanReference：根据pv的toParent属性来决定是否去父BeanFactory找，根据beanName来查找Bean，注册到BeanFactory的dependentBeanMap中
+        2. RuntimeBeanNameReference：调用BeanFactory的evaluateBeanDefinitionString方法来处理Ref的BeanName，校验是否存在Bean，存在的话返回处理后的**ref内的beanName**
+        3. BeanDefinitionHolder：resolveInnerBean
+        4. BeanDefinition：resolveInnerBean
+        5. ManagedArray：对于数组内的每个对象，确认返回的List的类型后，递归调用resolveValueIfNecessary方法来处理并放入新数组返回
+        6. resolveManagedList：递归调用resolveValueIfNecessary方法来处理并放入新List返回，相比Array少了确认List的内部类型的步骤
+        7. ManagedSet：递归调用resolveValueIfNecessary方法来处理并放入新Set返回
+        8. ManagedMap：递归调用resolveValueIfNecessary方法来处理key和value并放入新Map返回
+        9. ManagedProperties：迭代每个元素，调用beanExpressionResolver处理每个Property的key和value字符串，组装成新的Properties返回
+        10. TypedStringValue：见[具体说明](#1.4.4.3.1)
+    4. 判断pv是否可转换，需要property是可写属性，并且不是数组或者嵌套属性
+        1. 判断propertyName是否可写：
+            1. 获取PropertyHandler：
+                1. 以"."为分割符切分propertyName，获取最后部分
+                2. 根据上面的结果，在BeanWrapper里寻找缓存的CachedIntrospectionResults对象中对应的属性的PropertyDescriptor（具体缓存过程参考[获取CachedIntrospectionResults并缓存到BeanWrapper](XmlContext_7_CachedIntrospectionResults.md))，将之包装到BeanPropertyHandler中并返回，此ph中writable字段根据PropertyDescriptor对象是否有WriteMethod决定
+            2. 判断此Property是否可写：上一步PropertyHandler非空的话返回其writable属性，如果为空的话，调用getPropertyValue判断是否为数组属性("a[0]")或者嵌套属性("p.name")，是的话尝试获取Value，如果成功说明可写
+        2. 判断是不是数组或者嵌套属性：校验propertyName中是否有"["或者"."
+    5. 如果上一步判断PropertyValue可转换，则调用convertForProperty方法来转换值
+    6. 将上一步转换后的值，放入propertyValue的convertedValue属性中缓存起来，下次不需要重新转换（pv是从BeanDefinition中取出的）
+6. 设置PropertyValues为converted状态
+7. 将解析出的所有的PropertyValue包裹到一个新的MutablePropertyValues对象中放入传入的BeanWrapper对象的PropertyValues属性
+
+##### 1.4.4.3.1 TypedStringValue的处理
+
+1. 调用BeanFactory的beanExpressionResolver处理字符串
+2. 获取目标类型的Class对象：
+    1. 获取value内部的targetType，此属性缓存了已经解析好的目标类型，如果已经是Class对象则返回，为空则下一步
+    2. 如果value内部的targetType是String类型，则调用BeanFactory的ClassLoader加载类对象返回
+    3. 如果targetType为null，则返回null
+3. 如果上一步解析出了非空的目标类型，调用typeConverter.convertIfNecessary方法来转换并返回，否则直接返回第一步处理完成的字符串
+
+##### 1.4.4.3.2 值的类型转换：BeanFactory的convertForProperty方法
+
+先是AbstractAutowireCapableBeanFactory类
+
+最终实际是通过调用BeanWrapperImpl中typeConverterDelegate的convertIfNecessary方法来转换出实际需要的propertyValue：
+
+```java
+    @Nullable
+    public <T> T convertIfNecessary(@Nullable String propertyName, @Nullable Object oldValue, @Nullable Object newValue,
+            @Nullable Class<T> requiredType, @Nullable TypeDescriptor typeDescriptor) throws IllegalArgumentException {
+
+        // Custom editor for this type?
+        PropertyEditor editor = this.propertyEditorRegistry.findCustomEditor(requiredType, propertyName);
+
+        ConversionFailedException conversionAttemptEx = null;
+
+        // No custom editor but custom ConversionService specified?
+        ConversionService conversionService = this.propertyEditorRegistry.getConversionService();
+        if (editor == null && conversionService != null && newValue != null && typeDescriptor != null) {
+            TypeDescriptor sourceTypeDesc = TypeDescriptor.forObject(newValue);
+            if (conversionService.canConvert(sourceTypeDesc, typeDescriptor)) {
+                try {
+                    return (T) conversionService.convert(newValue, sourceTypeDesc, typeDescriptor);
+                }
+                catch (ConversionFailedException ex) {
+                    // fallback to default conversion logic below
+                    conversionAttemptEx = ex;
+                }
+            }
+        }
+
+        Object convertedValue = newValue;
+
+        // Value not of required type?
+        if (editor != null || (requiredType != null && !ClassUtils.isAssignableValue(requiredType, convertedValue))) {
+            if (typeDescriptor != null && requiredType != null && Collection.class.isAssignableFrom(requiredType) &&
+                    convertedValue instanceof String) {
+                TypeDescriptor elementTypeDesc = typeDescriptor.getElementTypeDescriptor();
+                if (elementTypeDesc != null) {
+                    Class<?> elementType = elementTypeDesc.getType();
+                    if (Class.class == elementType || Enum.class.isAssignableFrom(elementType)) {
+                        convertedValue = StringUtils.commaDelimitedListToStringArray((String) convertedValue);
+                    }
+                }
+            }
+            if (editor == null) {
+                editor = findDefaultEditor(requiredType);
+            }
+            convertedValue = doConvertValue(oldValue, convertedValue, requiredType, editor);
+        }
+
+        boolean standardConversion = false;
+
+        if (requiredType != null) {
+            // Try to apply some standard type conversion rules if appropriate.
+
+            if (convertedValue != null) {
+                if (Object.class == requiredType) {
+                    return (T) convertedValue;
+                }
+                else if (requiredType.isArray()) {
+                    // Array required -> apply appropriate conversion of elements.
+                    if (convertedValue instanceof String && Enum.class.isAssignableFrom(requiredType.getComponentType())) {
+                        convertedValue = StringUtils.commaDelimitedListToStringArray((String) convertedValue);
+                    }
+                    return (T) convertToTypedArray(convertedValue, propertyName, requiredType.getComponentType());
+                }
+                else if (convertedValue instanceof Collection) {
+                    // Convert elements to target type, if determined.
+                    convertedValue = convertToTypedCollection(
+                            (Collection<?>) convertedValue, propertyName, requiredType, typeDescriptor);
+                    standardConversion = true;
+                }
+                else if (convertedValue instanceof Map) {
+                    // Convert keys and values to respective target type, if determined.
+                    convertedValue = convertToTypedMap(
+                            (Map<?, ?>) convertedValue, propertyName, requiredType, typeDescriptor);
+                    standardConversion = true;
+                }
+                if (convertedValue.getClass().isArray() && Array.getLength(convertedValue) == 1) {
+                    convertedValue = Array.get(convertedValue, 0);
+                    standardConversion = true;
+                }
+                if (String.class == requiredType && ClassUtils.isPrimitiveOrWrapper(convertedValue.getClass())) {
+                    // We can stringify any primitive value...
+                    return (T) convertedValue.toString();
+                }
+                else if (convertedValue instanceof String && !requiredType.isInstance(convertedValue)) {
+                    if (conversionAttemptEx == null && !requiredType.isInterface() && !requiredType.isEnum()) {
+                        try {
+                            Constructor<T> strCtor = requiredType.getConstructor(String.class);
+                            return BeanUtils.instantiateClass(strCtor, convertedValue);
+                        }
+                        catch (NoSuchMethodException ex) {
+                            // proceed with field lookup
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("No String constructor found on type [" + requiredType.getName() + "]", ex);
+                            }
+                        }
+                        catch (Exception ex) {
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Construction via String failed for type [" + requiredType.getName() + "]", ex);
+                            }
+                        }
+                    }
+                    String trimmedValue = ((String) convertedValue).trim();
+                    if (requiredType.isEnum() && trimmedValue.isEmpty()) {
+                        // It's an empty enum identifier: reset the enum value to null.
+                        return null;
+                    }
+                    convertedValue = attemptToConvertStringToEnum(requiredType, trimmedValue, convertedValue);
+                    standardConversion = true;
+                }
+                else if (convertedValue instanceof Number && Number.class.isAssignableFrom(requiredType)) {
+                    convertedValue = NumberUtils.convertNumberToTargetClass(
+                            (Number) convertedValue, (Class<Number>) requiredType);
+                    standardConversion = true;
+                }
+            }
+            else {
+                // convertedValue == null
+                if (requiredType == Optional.class) {
+                    convertedValue = Optional.empty();
+                }
+            }
+
+            if (!ClassUtils.isAssignableValue(requiredType, convertedValue)) {
+                if (conversionAttemptEx != null) {
+                    // Original exception from former ConversionService call above...
+                    throw conversionAttemptEx;
+                }
+                else if (conversionService != null && typeDescriptor != null) {
+                    // ConversionService not tried before, probably custom editor found
+                    // but editor couldn't produce the required type...
+                    TypeDescriptor sourceTypeDesc = TypeDescriptor.forObject(newValue);
+                    if (conversionService.canConvert(sourceTypeDesc, typeDescriptor)) {
+                        return (T) conversionService.convert(newValue, sourceTypeDesc, typeDescriptor);
+                    }
+                }
+
+                // Definitely doesn't match: throw IllegalArgumentException/IllegalStateException
+                StringBuilder msg = new StringBuilder();
+                msg.append("Cannot convert value of type '").append(ClassUtils.getDescriptiveType(newValue));
+                msg.append("' to required type '").append(ClassUtils.getQualifiedName(requiredType)).append("'");
+                if (propertyName != null) {
+                    msg.append(" for property '").append(propertyName).append("'");
+                }
+                if (editor != null) {
+                    msg.append(": PropertyEditor [").append(editor.getClass().getName()).append(
+                            "] returned inappropriate value of type '").append(
+                            ClassUtils.getDescriptiveType(convertedValue)).append("'");
+                    throw new IllegalArgumentException(msg.toString());
+                }
+                else {
+                    msg.append(": no matching editors or conversion strategy found");
+                    throw new IllegalStateException(msg.toString());
+                }
+            }
+        }
+
+        if (conversionAttemptEx != null) {
+            if (editor == null && !standardConversion && requiredType != null && Object.class != requiredType) {
+                throw conversionAttemptEx;
+            }
+        }
+
+        return (T) convertedValue;
+    }
+```
+
+1. 获取customEditors中的PropertyEditor，内部执行时还会检查是否有当前需要的类的父类customEditors
+2. 如果没有customEditor但是有conversionService，则调用conversionService的convert方法来处理并返回
+3. 如果没有customEditor且现在的PropertyValue类型还是不是目标类型
+    1. 如果目标类型是Collection类型而且当前的PropertyValue是字符串，判断目标数组内部元素类型是不是Class或者Enum类型，如果是，则先把字符串根据","分割成字符串数组
+    2. 根据目标类型获取defaultEditor
+    3. 调用BeanWrapperImpl的doConvertValue方法来Convert当前的PropertyValue
+4. 一些特殊的转换过程：
+    1. 目标类型是数组：
+        1. 数组内部类型是Enum型，先把单个字符串解析成字符串数组
+        2. 递归调用convertIfNecessary来转换当前数组（Collection）中的值到新数组，如果只有一个对象则转换成只有一个元素的数组
+    2. 转换过的convertedValue是Collection元素：convertToTypedCollection方法
+    3. 转换过的convertedValue是Map元素：convertToTypedMap方法
+    4. 转换过的convertedValue是数组且只有一个元素：convertedValue = convertedValue[0]
+5. 如果目标类型是String类且当前转换过的值是原生类型，返回convertedValue.toString()
+6. 如果convertedValue是String但目标类型不是String型：
+    1. 如果目标类型不是接口也不是Enum型，那么尝试调用目标Class的参数为一个String的构造方法，并将convertedValue传入
+    2. 如果目标类型是Enumerate，那么调用attemptToConvertStringToEnum来尝试转换下convertedValue
+7. 如果convertedValue是Number且目标类型也是Number的子类型，调用NumberUtils的方法来进行转换
+8. 如果convertedValue == null 且 目标类型是Optional型，则convertedValue = Optional.empty();
+9. 如果目标类型和当前的convertedValue = Optional.empty();
+10. 如果convertedValue还是与目标类型不匹配，则调用convertionService最后转换一下并返回
+11. 最后返回转换好的值，或者抛出异常
+
+###### 1.4.3.2.1. BeanWrapperImpl的doConvertValue方法
+
+```java
+    @Nullable
+    private Object doConvertValue(@Nullable Object oldValue, @Nullable Object newValue,
+            @Nullable Class<?> requiredType, @Nullable PropertyEditor editor) {
+
+        Object convertedValue = newValue;
+
+        if (editor != null && !(convertedValue instanceof String)) {
+            // Not a String -> use PropertyEditor's setValue.
+            // With standard PropertyEditors, this will return the very same object;
+            // we just want to allow special PropertyEditors to override setValue
+            // for type conversion from non-String values to the required type.
+            try {
+                editor.setValue(convertedValue);
+                Object newConvertedValue = editor.getValue();
+                if (newConvertedValue != convertedValue) {
+                    convertedValue = newConvertedValue;
+                    // Reset PropertyEditor: It already did a proper conversion.
+                    // Don't use it again for a setAsText call.
+                    editor = null;
+                }
+            }
+            catch (Exception ex) {
+                // Swallow and proceed.
+            }
+        }
+
+        Object returnValue = convertedValue;
+
+        if (requiredType != null && !requiredType.isArray() && convertedValue instanceof String[]) {
+            // Convert String array to a comma-separated String.
+            // Only applies if no PropertyEditor converted the String array before.
+            // The CSV String will be passed into a PropertyEditor's setAsText method, if any.
+            convertedValue = StringUtils.arrayToCommaDelimitedString((String[]) convertedValue);
+        }
+
+        if (convertedValue instanceof String) {
+            if (editor != null) {
+                // Use PropertyEditor's setAsText in case of a String value.
+                String newTextValue = (String) convertedValue;
+                return doConvertTextValue(oldValue, newTextValue, editor);
+            }
+            else if (String.class == requiredType) {
+                returnValue = convertedValue;
+            }
+        }
+
+        return returnValue;
+    }
+```
+
+1. 如果入参不是String类型，则调用editor的```setValue()```方法来转换，```java.beans.PropertyEditorSupport```类中的实现是```setValue()```方法不进行任何转换，而对于大部分```org.springframework.beans.propertyeditors```包下的子类，都是直接继承但没有复写其实现方法的，在这里调用是因为确实有部分PropertyEditor覆写了这个方法的罗技，比如CustomNumberEditor，会在入参是Number类型值的时候，尝试调用目标类型的相关静态方法来转换（```BigInteger.valueOf()```,```Double.valueOf```,```new BigDecimal(number.toString())```等)，这里还有一个小细节，如果确实发生了转换（返回值不等于原值），说明setValue()方法确实被覆写且发生了转换，则editor被置为null，不再调用setAsText()方法
+2. 如果入参是String数组但目标不是数组类型，则先将入参数组合并为用","分割的单个字符串
+3. 如果入参是String对象且editor不为空，则调用```doConvertTextValue(oldValue, newTextValue, editor)```方法转换并返回:
+    1. 尝试调用editor的setValue(oldValue)
+    2. 调用editor的setAsText(newTextValue)方法，对于CustomNumberEditor(即使叫这个名字，在BeanWrapperImpl中依然是defaultEditors的一员)，实际还是根据目标的类型，调用相关静态方法来转换（```Integer.decode(trimmed)```,```BigInteger.valueOf()```,```Double.valueOf```,```new BigDecimal(number.toString())```等)，值传入value属性中
+4. 如果editor为空且目标类型是String，则返回原值
+
+
