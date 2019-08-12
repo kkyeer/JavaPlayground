@@ -65,8 +65,8 @@
 2. 如果bean内部还没有BeanClass属性，则拷贝一份bd(beanDefinition的简称，下同)，并传入上一步解析的BeanClass
 3. 校验并准备所有的MethodOverride
 4. 初始化之前的钩子函数：调用可能的InstantiationAwareBeanPostProcessor，这些BeanPostProcessor可能用来生成代理类，如果这些BeanPostProcessor中生成了bean，则返回生成的bean不进行后续操作
-5. 调用doCreateBean方法来获取Object
-6. 
+5. 调用doCreateBean方法来获取Bean实例
+6. 调用
 
 ## 1.1 解析Bean对应的BeanClass
 
@@ -172,7 +172,10 @@ private Expression[] parseExpressions(String expressionString, ParserContext con
 2. 调用可能的MergedBeanDefinitionPostProcessor修改bd，修改完成后mbd.postProcessed = true
 3. 如果允许循环引用，则提前缓存创建中的单例Bean
 4. 解析BeanWrapper中的PropertyValue
-5. 
+5. 初始化实例：调用回调方法和BeanPostProcessors
+6. 处理循环引用和earlySingletonExposure
+7. 注册Bean的销毁方法：DisposableBean到BeanFactory
+8. 返回Bean实例
 
 ### 1.4.1 createBeanInstance方法
 
@@ -554,7 +557,7 @@ BeanWrapperImpl的类关系图如下：
     5. 如果上一步判断PropertyValue可转换，则调用convertForProperty方法来转换值
     6. 将上一步转换后的值，放入propertyValue的convertedValue属性中缓存起来，下次不需要重新转换（pv是从BeanDefinition中取出的）
 6. 设置PropertyValues为converted状态
-7. 将解析出的所有的PropertyValue包裹到一个新的MutablePropertyValues对象中放入传入的BeanWrapper对象的PropertyValues属性
+7. 将解析出的所有的PropertyValue包裹到一个新的MutablePropertyValues对象中，调用BeanWrapper对象的setPropertyValues方法，具体从MutablePropertyValues对象集成到Bean的过程参考[PropertyValue到Bean内部属性](./XmlContext_10_PropertyValueSetToBean.md)
 
 ##### 1.4.4.3.1 TypedStringValue的处理
 
@@ -818,4 +821,101 @@ BeanWrapperImpl的类关系图如下：
     2. 调用editor的setAsText(newTextValue)方法，对于CustomNumberEditor(即使叫这个名字，在BeanWrapperImpl中依然是defaultEditors的一员)，实际还是根据目标的类型，调用相关静态方法来转换（```Integer.decode(trimmed)```,```BigInteger.valueOf()```,```Double.valueOf```,```new BigDecimal(number.toString())```等)，值传入value属性中
 4. 如果editor为空且目标类型是String，则返回原值
 
+
+
+### 1.4.5 初始化实例：调用回调方法和BeanPostProcessors
+
+1. 调用Bean内部的回调方法
+2. 调用各个BeanPostProcessor的postProcessBeforeInitialization方法
+3. 调用Bean的相关property已经解析完后调用的方法
+4. 调用各个BeanPostProcessor的postProcessAfterInitialization方法
+
+#### 1.4.5.1 Bean的回调方法
+
+在Spring中Aware接口用来表示回调，实现了下面Aware子接口的Bean，会在此阶段被调用接口对应的方法：
+
+- BeanNameAware：((BeanNameAware) bean).setBeanName(beanName)
+- BeanClassLoaderAware：((BeanClassLoaderAware) bean).setBeanClassLoader(bcl);
+- BeanFactoryAware：((BeanFactoryAware) bean).setBeanFactory(AbstractAutowireCapableBeanFactory.this);
+
+#### 1.4.5.2 BeanPostProcessor的postProcessBeforeInitialization方法
+
+不同的BeanProcessor有不同的实现：
+
+- AbstractContextAwareProcessor来说，是调用上下文相关的BeanAware实现的回调方法
+- PostProcessorRegistrationDelegate:返回原值
+- ApplicationListenerDetector:返回原值 
+
+#### 1.4.5.3 调用Bean的相关property已经解析完后调用的方法
+
+((InitializingBean) bean).afterPropertiesSet()
+
+### 1.4.6 处理循环引用和earlySingletonExposure
+
+```java
+    if (earlySingletonExposure) {
+        Object earlySingletonReference = getSingleton(beanName, false);
+        if (earlySingletonReference != null) {
+            if (exposedObject == bean) {
+                exposedObject = earlySingletonReference;
+            }
+            else if (!this.allowRawInjectionDespiteWrapping && hasDependentBean(beanName)) {
+                String[] dependentBeans = getDependentBeans(beanName);
+                Set<String> actualDependentBeans = new LinkedHashSet<>(dependentBeans.length);
+                for (String dependentBean : dependentBeans) {
+                    if (!removeSingletonIfCreatedForTypeCheckOnly(dependentBean)) {
+                        actualDependentBeans.add(dependentBean);
+                    }
+                }
+                if (!actualDependentBeans.isEmpty()) {
+                    throw new BeanCurrentlyInCreationException(beanName,
+                            "Bean with name '" + beanName + "' has been injected into other beans [" +
+                            StringUtils.collectionToCommaDelimitedString(actualDependentBeans) +
+                            "] in its raw version as part of a circular reference, but has eventually been " +
+                            "wrapped. This means that said other beans do not use the final version of the " +
+                            "bean. This is often the result of over-eager type matching - consider using " +
+                            "'getBeanNamesOfType' with the 'allowEagerInit' flag turned off, for example.");
+                }
+            }
+        }
+    }
+```
+
+如果当前BeanName对应的Bean还未放入singletonObjects且处于创建过程中，并且已放入this.earlySingletonObjects缓存中，则替换当前创建完成的Bean为this.earlySingletonObjects缓存的Bean
+
+### 1.4.7 注册Bean的销毁方法
+
+```java
+	protected void registerDisposableBeanIfNecessary(String beanName, Object bean, RootBeanDefinition mbd) {
+		AccessControlContext acc = (System.getSecurityManager() != null ? getAccessControlContext() : null);
+		if (!mbd.isPrototype() && requiresDestruction(bean, mbd)) {
+			if (mbd.isSingleton()) {
+				// Register a DisposableBean implementation that performs all destruction
+				// work for the given bean: DestructionAwareBeanPostProcessors,
+				// DisposableBean interface, custom destroy method.
+				registerDisposableBean(beanName,
+						new DisposableBeanAdapter(bean, beanName, mbd, getBeanPostProcessors(), acc));
+			}
+			else {
+				// A bean with a custom scope...
+				Scope scope = this.scopes.get(mbd.getScope());
+				if (scope == null) {
+					throw new IllegalStateException("No Scope registered for scope name '" + mbd.getScope() + "'");
+				}
+				scope.registerDestructionCallback(beanName,
+						new DisposableBeanAdapter(bean, beanName, mbd, getBeanPostProcessors(), acc));
+			}
+		}
+	}
+```
+
+如果Bean符合下面任何条件，则认为Bean有自己的destroy方法:
+
+- 实现了DisposableBean接口
+- 实现了AutoCloseable接口
+- 有自定义的destroyMethodName：
+    1. ```"(inferred)"```:判断Bean的类型中是否有```"close"```方法或者```"shutdown"```方法
+    2. 其他非空Name
+
+如果Bean有自己的Destroy方法，或者BeanFactory有DestructionAwareBeanPostProcessor，说明需要注册DisposableBean，那么初始化一个DisposableBeanAdapter适配器，与BeanName关联
 

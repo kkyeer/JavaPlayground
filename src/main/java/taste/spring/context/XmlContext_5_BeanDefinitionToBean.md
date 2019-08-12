@@ -268,6 +268,74 @@ AbstractBeanFacory内关于获取Singleton类型bean的代码如下
 
 1. 确认this.singletonObjects里没有实例，否则直接返回已创建好的实例
 2. 确保当前没有在销毁Singleton阶段(this.singletonsCurrentlyInDestruction作为flag字段),如果是则报错
-3. 检查beanName对应的inCreationg状态:```!this.inCreationCheckExclusions.contains(beanName) && !this.singletonsCurrentlyInCreation.add(beanName)```，两个容器均为存储当前正在创建的singletonBean的beanName的set，任一个存在则表明此beanName对应的bean已在创建
-4. 调用传入的ObjectFactory\<T>类型的Lambda表达式，获取单例对象，传入的Lambda表达式中，调用的是AbstractAutowireCapableBeanFactory的createBean方法，这个方法是整个bean创建过程的核心方法，过程参见[createBean的过程](./XmlContext_6_CreateBean.md)
+3. 检查beanName对应的inCreationg状态:```!this.inCreationCheckExclusions.contains(beanName) && !this.singletonsCurrentlyInCreation.add(beanName)```，两个容器均为存储当前正在创建的singletonBean的beanName的set，任一个存在则表明此beanName对应的bean已在创建，则报错
+4. 调用传入的ObjectFactory\<T>类型的Lambda表达式，获取单例对象，传入的Lambda表达式中，调用的是AbstractAutowireCapableBeanFactory的createBean方法，这个方法是整个bean创建过程的核心方法，过程参见[createBean的过程](./XmlContext_6_CreateBean.md)，并且newSingleton这个flag属性置为true
+5. afterSingleton创建过程：确保当前bean正在创建，然后移除”正在创建"状态
+6. 将创建好的Bean放入BeanRegistry的对应缓存中，同时移除中间态的缓存：
+    1. this.singletonObjects.put(beanName, singletonObject);
+    2. this.singletonFactories.remove(beanName);
+    3. this.earlySingletonObjects.remove(beanName);
+    4. this.registeredSingletons.add(beanName);
 
+至此，初步的单例Bean创建完成
+
+##### 1.3.3.1.2 调用getObjectForBeanInstance获取最终的bean
+
+子类AbstractAutowireCapableBeanFactory的逻辑：
+
+```java
+    @Override
+    protected Object getObjectForBeanInstance(
+            Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
+
+        String currentlyCreatedBean = this.currentlyCreatedBean.get();
+        if (currentlyCreatedBean != null) {
+            registerDependentBean(beanName, currentlyCreatedBean);
+        }
+
+        return super.getObjectForBeanInstance(beanInstance, name, beanName, mbd);
+    }
+```
+
+父类AbstractBeanFactory的实现：
+
+```java
+	protected Object getObjectForBeanInstance(
+			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
+
+		// Don't let calling code try to dereference the factory if the bean isn't a factory.
+		if (BeanFactoryUtils.isFactoryDereference(name)) {
+			if (beanInstance instanceof NullBean) {
+				return beanInstance;
+			}
+			if (!(beanInstance instanceof FactoryBean)) {
+				throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
+			}
+		}
+
+		// Now we have the bean instance, which may be a normal bean or a FactoryBean.
+		// If it's a FactoryBean, we use it to create a bean instance, unless the
+		// caller actually wants a reference to the factory.
+		if (!(beanInstance instanceof FactoryBean) || BeanFactoryUtils.isFactoryDereference(name)) {
+			return beanInstance;
+		}
+
+		Object object = null;
+		if (mbd == null) {
+			object = getCachedObjectForFactoryBean(beanName);
+		}
+		if (object == null) {
+			// Return bean instance from factory.
+			FactoryBean<?> factory = (FactoryBean<?>) beanInstance;
+			// Caches object obtained from FactoryBean if it is a singleton.
+			if (mbd == null && containsBeanDefinition(beanName)) {
+				mbd = getMergedLocalBeanDefinition(beanName);
+			}
+			boolean synthetic = (mbd != null && mbd.isSynthetic());
+			object = getObjectFromFactoryBean(factory, beanName, !synthetic);
+		}
+		return object;
+	}
+```
+
+如果是需要FactoryBean本身或者压根不是FactoryBean，则返回Bean实例
