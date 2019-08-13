@@ -93,6 +93,7 @@
 10. 注册ApplicationListener
 11. 初始化还未初始化的单例bean
 12. 结束refresh()
+13. refresh完成后清理缓存
 
 ## 1.1 准备操作：prepareRefresh()
 
@@ -647,8 +648,55 @@ AbstractBeanDefinitionReader获取到Resource数组后，会迭代数组元素�
 2. 对于每一个bean，执行下面的过程来初始化
     1. 合并所有的BeanDefinition
     2. 对于非Abstract、非懒加载的SingletonBean，如果是FactoryBean，则先调用getBean(beanName)方法初始化名为"&"+beanName的FactoryBean，再调用getBean(beanName)方法来初始化bean，如果不是FactoryBean，则直接调用getBean(beanName)方法，getBean(beanName)方法具体执行bean的初始化、连接、注入等功能，详情见[初始化bean的过程](./XmlContext_5_BeanDefinitionToBean.md)
+3. 调用所有SmartInitializingSingleton类型的单例Bean的afterSingletonsInstantiated()方法
 
 BeanFactory和FactoryBean的区别：
 
 >FactoryBean是一个接口，接口中有getObject()方法，实现了此接口的bean，在SpringContext中作为Factory使用，beanFactory中维护了一个name为"&"+"beanName"的bean，用来生成具体的bean，"&"是Spring约定的标记一个bean为FactoryBean的标记
 >BeanFactory也是一个接口，内部定义了管理Bean生命周期、存取的方法，比如getBean的各种重载方法、containsBean、isSingleton等方法，ApplicationContext接口继承了此接口，因此，各种Context也实现了ApplicationContext接口，都可以看作BeanFactory
+
+## 1.12 12. 结束refresh()
+
+```
+    protected void finishRefresh() {
+        // Clear context-level resource caches (such as ASM metadata from scanning).
+        clearResourceCaches();
+
+        // Initialize lifecycle processor for this context.
+        initLifecycleProcessor();
+
+        // Propagate refresh to lifecycle processor first.
+        getLifecycleProcessor().onRefresh();
+
+        // Publish the final event.
+        publishEvent(new ContextRefreshedEvent(this));
+
+        // Participate in LiveBeansView MBean, if active.
+        LiveBeansView.registerApplicationContext(this);
+    }
+```
+
+1. 清空当前上下文的resourceCaches
+2. 如果上下文的BeanFactory有定义名称为"lifecycleProcessor"，类为LifecycleProcessor的Bean，则将之赋值给this.lifecycleProcessor属性，如果没有，则初始化一个DefaultLifecycleProcessor类型的单例Bean，注册到BeanFactory，名称为"lifecycleProcessor"
+3. 调用this.lifecycleProcessor的onRefresh()方法:
+    1. 寻找所有Lifecycle类的Bean
+    2. 遍历上面的Bean，组装成phases，放入一个LifecycleGroup
+    3. 按顺序调用LifecircleGroup的start方法
+    4. 标记当前LifecycleProcessor的running为true
+4. 发布ContextRefreshedEvent：向当前上下文中的ApplicationEventMulticaster多播事件
+5. LiveBeansView.registerApplicationContext(this):如果环境变量有定义""spring.liveBeansView.mbeanDomain"，则向MBeanServer注册MBean
+
+## 1.13 refersh完成后，清理缓存
+
+主要是清空一些静态类的缓存：
+
+```java
+    protected void resetCommonCaches() {
+        ReflectionUtils.clearCache();
+        AnnotationUtils.clearCache();
+        ResolvableType.clearCache();
+        CachedIntrospectionResults.clearClassLoader(getClassLoader());
+    }
+```
+
+至此，ClassPathXmlApplicationContext的构造方法中的refresh()过程完成

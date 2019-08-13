@@ -3,22 +3,22 @@
 在[第三节:加载Resource对象成BeanDefinition](./XmlContext_3_LoadResource.md)中，已经将Resource解析成Document对象，并且遍历调用相关方法来对不同的DOM节点方法来加载内部定义，对于当前实例来说，Bean定义节点加载成BeanDefinition对象调用的是org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader对象的processBeanDefinition方法：
 
 ```java
-	protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
-		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
-		if (bdHolder != null) {
-			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
-			try {
-				// Register the final decorated instance.
-				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
-			}
-			catch (BeanDefinitionStoreException ex) {
-				getReaderContext().error("Failed to register bean definition with name '" +
-						bdHolder.getBeanName() + "'", ele, ex);
-			}
-			// Send registration event.
-			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
-		}
-	}
+    protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+        BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
+        if (bdHolder != null) {
+            bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+            try {
+                // Register the final decorated instance.
+                BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
+            }
+            catch (BeanDefinitionStoreException ex) {
+                getReaderContext().error("Failed to register bean definition with name '" +
+                        bdHolder.getBeanName() + "'", ele, ex);
+            }
+            // Send registration event.
+            getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
+        }
+    }
 ```
 
 1. delegate将DOM元素解析成BeanDefinitionHolder对象，此对象中存储BeanDefinition即Bean的属性、构造参数等信息，以及name，alias方法，并提供一些工具方法来访问这些属性
@@ -31,66 +31,66 @@
 BeanDefinitionParserDelegate的parseBeanDefinitionElement方法具体执行DOM节点到BeanDefinition对象的转化过程：
 
 ```java
-	@Nullable
-	public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
-		String id = ele.getAttribute(ID_ATTRIBUTE);
-		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
+    @Nullable
+    public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
+        String id = ele.getAttribute(ID_ATTRIBUTE);
+        String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
 
-		List<String> aliases = new ArrayList<>();
-		if (StringUtils.hasLength(nameAttr)) {
-			String[] nameArr = StringUtils.tokenizeToStringArray(nameAttr, MULTI_VALUE_ATTRIBUTE_DELIMITERS);
-			aliases.addAll(Arrays.asList(nameArr));
-		}
+        List<String> aliases = new ArrayList<>();
+        if (StringUtils.hasLength(nameAttr)) {
+            String[] nameArr = StringUtils.tokenizeToStringArray(nameAttr, MULTI_VALUE_ATTRIBUTE_DELIMITERS);
+            aliases.addAll(Arrays.asList(nameArr));
+        }
 
-		String beanName = id;
-		if (!StringUtils.hasText(beanName) && !aliases.isEmpty()) {
-			beanName = aliases.remove(0);
-			if (logger.isTraceEnabled()) {
-				logger.trace("No XML 'id' specified - using '" + beanName +
-						"' as bean name and " + aliases + " as aliases");
-			}
-		}
+        String beanName = id;
+        if (!StringUtils.hasText(beanName) && !aliases.isEmpty()) {
+            beanName = aliases.remove(0);
+            if (logger.isTraceEnabled()) {
+                logger.trace("No XML 'id' specified - using '" + beanName +
+                        "' as bean name and " + aliases + " as aliases");
+            }
+        }
 
-		if (containingBean == null) {
-			checkNameUniqueness(beanName, aliases, ele);
-		}
+        if (containingBean == null) {
+            checkNameUniqueness(beanName, aliases, ele);
+        }
 
-		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
-		if (beanDefinition != null) {
-			if (!StringUtils.hasText(beanName)) {
-				try {
-					if (containingBean != null) {
-						beanName = BeanDefinitionReaderUtils.generateBeanName(
-								beanDefinition, this.readerContext.getRegistry(), true);
-					}
-					else {
-						beanName = this.readerContext.generateBeanName(beanDefinition);
-						// Register an alias for the plain bean class name, if still possible,
-						// if the generator returned the class name plus a suffix.
-						// This is expected for Spring 1.2/2.0 backwards compatibility.
-						String beanClassName = beanDefinition.getBeanClassName();
-						if (beanClassName != null &&
-								beanName.startsWith(beanClassName) && beanName.length() > beanClassName.length() &&
-								!this.readerContext.getRegistry().isBeanNameInUse(beanClassName)) {
-							aliases.add(beanClassName);
-						}
-					}
-					if (logger.isTraceEnabled()) {
-						logger.trace("Neither XML 'id' nor 'name' specified - " +
-								"using generated bean name [" + beanName + "]");
-					}
-				}
-				catch (Exception ex) {
-					error(ex.getMessage(), ele);
-					return null;
-				}
-			}
-			String[] aliasesArray = StringUtils.toStringArray(aliases);
-			return new BeanDefinitionHolder(beanDefinition, beanName, aliasesArray);
-		}
+        AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
+        if (beanDefinition != null) {
+            if (!StringUtils.hasText(beanName)) {
+                try {
+                    if (containingBean != null) {
+                        beanName = BeanDefinitionReaderUtils.generateBeanName(
+                                beanDefinition, this.readerContext.getRegistry(), true);
+                    }
+                    else {
+                        beanName = this.readerContext.generateBeanName(beanDefinition);
+                        // Register an alias for the plain bean class name, if still possible,
+                        // if the generator returned the class name plus a suffix.
+                        // This is expected for Spring 1.2/2.0 backwards compatibility.
+                        String beanClassName = beanDefinition.getBeanClassName();
+                        if (beanClassName != null &&
+                                beanName.startsWith(beanClassName) && beanName.length() > beanClassName.length() &&
+                                !this.readerContext.getRegistry().isBeanNameInUse(beanClassName)) {
+                            aliases.add(beanClassName);
+                        }
+                    }
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Neither XML 'id' nor 'name' specified - " +
+                                "using generated bean name [" + beanName + "]");
+                    }
+                }
+                catch (Exception ex) {
+                    error(ex.getMessage(), ele);
+                    return null;
+                }
+            }
+            String[] aliasesArray = StringUtils.toStringArray(aliases);
+            return new BeanDefinitionHolder(beanDefinition, beanName, aliasesArray);
+        }
 
-		return null;
-	}
+        return null;
+    }
 ```
 
 1. 处理bean的id、name和alias，并校验
@@ -109,55 +109,55 @@ name处理完毕后，delegate会校验同级的节点中有没有name重复的b
 ### 1.1.2 DOM元素解析成BeanDefinition对象：重载的parseBeanDefinitionElement方法
 
 ```java
-	@Nullable
-	public AbstractBeanDefinition parseBeanDefinitionElement(
-			Element ele, String beanName, @Nullable BeanDefinition containingBean) {
+    @Nullable
+    public AbstractBeanDefinition parseBeanDefinitionElement(
+            Element ele, String beanName, @Nullable BeanDefinition containingBean) {
 
-		this.parseState.push(new BeanEntry(beanName));
+        this.parseState.push(new BeanEntry(beanName));
 
-		String className = null;
-		if (ele.hasAttribute(CLASS_ATTRIBUTE)) {
-			className = ele.getAttribute(CLASS_ATTRIBUTE).trim();
-		}
-		String parent = null;
-		if (ele.hasAttribute(PARENT_ATTRIBUTE)) {
-			parent = ele.getAttribute(PARENT_ATTRIBUTE);
-		}
+        String className = null;
+        if (ele.hasAttribute(CLASS_ATTRIBUTE)) {
+            className = ele.getAttribute(CLASS_ATTRIBUTE).trim();
+        }
+        String parent = null;
+        if (ele.hasAttribute(PARENT_ATTRIBUTE)) {
+            parent = ele.getAttribute(PARENT_ATTRIBUTE);
+        }
 
-		try {
-			AbstractBeanDefinition bd = createBeanDefinition(className, parent);
+        try {
+            AbstractBeanDefinition bd = createBeanDefinition(className, parent);
 
-			parseBeanDefinitionAttributes(ele, beanName, containingBean, bd);
-			bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
+            parseBeanDefinitionAttributes(ele, beanName, containingBean, bd);
+            bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
 
-			parseMetaElements(ele, bd);
-			parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
-			parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
+            parseMetaElements(ele, bd);
+            parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
+            parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
 
-			parseConstructorArgElements(ele, bd);
-			parsePropertyElements(ele, bd);
-			parseQualifierElements(ele, bd);
+            parseConstructorArgElements(ele, bd);
+            parsePropertyElements(ele, bd);
+            parseQualifierElements(ele, bd);
 
-			bd.setResource(this.readerContext.getResource());
-			bd.setSource(extractSource(ele));
+            bd.setResource(this.readerContext.getResource());
+            bd.setSource(extractSource(ele));
 
-			return bd;
-		}
-		catch (ClassNotFoundException ex) {
-			error("Bean class [" + className + "] not found", ele, ex);
-		}
-		catch (NoClassDefFoundError err) {
-			error("Class that bean class [" + className + "] depends on not found", ele, err);
-		}
-		catch (Throwable ex) {
-			error("Unexpected failure during bean definition parsing", ele, ex);
-		}
-		finally {
-			this.parseState.pop();
-		}
+            return bd;
+        }
+        catch (ClassNotFoundException ex) {
+            error("Bean class [" + className + "] not found", ele, ex);
+        }
+        catch (NoClassDefFoundError err) {
+            error("Class that bean class [" + className + "] depends on not found", ele, err);
+        }
+        catch (Throwable ex) {
+            error("Unexpected failure during bean definition parsing", ele, ex);
+        }
+        finally {
+            this.parseState.pop();
+        }
 
-		return null;
-	}
+        return null;
+    }
 ```
 
 1. 获取class和parent定义
@@ -177,21 +177,21 @@ name处理完毕后，delegate会校验同级的节点中有没有name重复的b
 调用BeanDefinitionReaderUtils的静态方法```createBeanDefinition(parentName, className, this.readerContext.getBeanClassLoader())```来初始化BeanDefinition，初始化的是GenericBeanDefinition对象，class对象的处理如下：
 
 ```java
-	public static AbstractBeanDefinition createBeanDefinition(
-			@Nullable String parentName, @Nullable String className, @Nullable ClassLoader classLoader) throws ClassNotFoundException {
+    public static AbstractBeanDefinition createBeanDefinition(
+            @Nullable String parentName, @Nullable String className, @Nullable ClassLoader classLoader) throws ClassNotFoundException {
 
-		GenericBeanDefinition bd = new GenericBeanDefinition();
-		bd.setParentName(parentName);
-		if (className != null) {
-			if (classLoader != null) {
-				bd.setBeanClass(ClassUtils.forName(className, classLoader));
-			}
-			else {
-				bd.setBeanClassName(className);
-			}
-		}
-		return bd;
-	}
+        GenericBeanDefinition bd = new GenericBeanDefinition();
+        bd.setParentName(parentName);
+        if (className != null) {
+            if (classLoader != null) {
+                bd.setBeanClass(ClassUtils.forName(className, classLoader));
+            }
+            else {
+                bd.setBeanClassName(className);
+            }
+        }
+        return bd;
+    }
 ```
 
 由于readerContext没有指定特殊的ClassLoader，因此此处bd中只存储BeanClassName
@@ -222,22 +222,22 @@ name处理完毕后，delegate会校验同级的节点中有没有name重复的b
 调用了BeanDefinitionReaderUtils的registerBeanDefinition方法，代码如下
 
 ```java
-	public static void registerBeanDefinition(
-			BeanDefinitionHolder definitionHolder, BeanDefinitionRegistry registry)
-			throws BeanDefinitionStoreException {
+    public static void registerBeanDefinition(
+            BeanDefinitionHolder definitionHolder, BeanDefinitionRegistry registry)
+            throws BeanDefinitionStoreException {
 
-		// Register bean definition under primary name.
-		String beanName = definitionHolder.getBeanName();
-		registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
+        // Register bean definition under primary name.
+        String beanName = definitionHolder.getBeanName();
+        registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
 
-		// Register aliases for bean name, if any.
-		String[] aliases = definitionHolder.getAliases();
-		if (aliases != null) {
-			for (String alias : aliases) {
-				registry.registerAlias(beanName, alias);
-			}
-		}
-	}
+        // Register aliases for bean name, if any.
+        String[] aliases = definitionHolder.getAliases();
+        if (aliases != null) {
+            for (String alias : aliases) {
+                registry.registerAlias(beanName, alias);
+            }
+        }
+    }
 ```
 
 一共分为两步，第一步注册beanName和内部的beanDefinition，第二部注册别名aliases
@@ -276,15 +276,15 @@ name处理完毕后，delegate会校验同级的节点中有没有name重复的b
 线程同步使用的锁为beanDefinitionMap
 
 ```java
-	// Cannot modify startup-time collection elements anymore (for stable iteration)
-	synchronized (this.beanDefinitionMap) {
-		this.beanDefinitionMap.put(beanName, beanDefinition);
-		List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
-		updatedDefinitions.addAll(this.beanDefinitionNames);
-		updatedDefinitions.add(beanName);
-		this.beanDefinitionNames = updatedDefinitions;
-		removeManualSingletonName(beanName);
-	}
+    // Cannot modify startup-time collection elements anymore (for stable iteration)
+    synchronized (this.beanDefinitionMap) {
+        this.beanDefinitionMap.put(beanName, beanDefinition);
+        List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
+        updatedDefinitions.addAll(this.beanDefinitionNames);
+        updatedDefinitions.add(beanName);
+        this.beanDefinitionNames = updatedDefinitions;
+        removeManualSingletonName(beanName);
+    }
 ```
 
 #### 1.3.1.4 重置bean相关单例缓存

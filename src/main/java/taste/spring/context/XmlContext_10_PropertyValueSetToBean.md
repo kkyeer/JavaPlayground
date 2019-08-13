@@ -65,14 +65,14 @@
 ## 1.3 AbstractPropertyAccessor的```setPropertyValue(PropertyTokenHolder tokens, PropertyValue pv)```方法
 
 ```java
-	protected void setPropertyValue(PropertyTokenHolder tokens, PropertyValue pv) throws BeansException {
-		if (tokens.keys != null) {
-			processKeyedProperty(tokens, pv);
-		}
-		else {
-			processLocalProperty(tokens, pv);
-		}
-	}
+    protected void setPropertyValue(PropertyTokenHolder tokens, PropertyValue pv) throws BeansException {
+        if (tokens.keys != null) {
+            processKeyedProperty(tokens, pv);
+        }
+        else {
+            processLocalProperty(tokens, pv);
+        }
+    }
 ```
 
 根据Property的property name tokens中是否有keys，调用processKeyedProperty或者processLocalProperty
@@ -82,67 +82,67 @@
 ### 1.3.2 PropertyName没有key:processLocalProperty方法
 
 ```java
-	private void processLocalProperty(PropertyTokenHolder tokens, PropertyValue pv) {
-		PropertyHandler ph = getLocalPropertyHandler(tokens.actualName);
-		if (ph == null || !ph.isWritable()) {
-			if (pv.isOptional()) {
-				return;
-			}
-			else {
-				throw createNotWritablePropertyException(tokens.canonicalName);
-			}
-		}
+    private void processLocalProperty(PropertyTokenHolder tokens, PropertyValue pv) {
+        PropertyHandler ph = getLocalPropertyHandler(tokens.actualName);
+        if (ph == null || !ph.isWritable()) {
+            if (pv.isOptional()) {
+                return;
+            }
+            else {
+                throw createNotWritablePropertyException(tokens.canonicalName);
+            }
+        }
 
-		Object oldValue = null;
-		try {
-			Object originalValue = pv.getValue();
-			Object valueToApply = originalValue;
-			if (!Boolean.FALSE.equals(pv.conversionNecessary)) {
-				if (pv.isConverted()) {
-					valueToApply = pv.getConvertedValue();
-				}
-				else {
-					if (isExtractOldValueForEditor() && ph.isReadable()) {
-						try {
-							oldValue = ph.getValue();
-						}
-						catch (Exception ex) {
-							if (ex instanceof PrivilegedActionException) {
-								ex = ((PrivilegedActionException) ex).getException();
-							}
-						}
-					}
-					valueToApply = convertForProperty(
-							tokens.canonicalName, oldValue, originalValue, ph.toTypeDescriptor());
-				}
-				pv.getOriginalPropertyValue().conversionNecessary = (valueToApply != originalValue);
-			}
-			ph.setValue(valueToApply);
-		}
-		catch (TypeMismatchException ex) {
-			throw ex;
-		}
-		catch (InvocationTargetException ex) {
-			PropertyChangeEvent propertyChangeEvent = new PropertyChangeEvent(
-					getRootInstance(), this.nestedPath + tokens.canonicalName, oldValue, pv.getValue());
-			if (ex.getTargetException() instanceof ClassCastException) {
-				throw new TypeMismatchException(propertyChangeEvent, ph.getPropertyType(), ex.getTargetException());
-			}
-			else {
-				Throwable cause = ex.getTargetException();
-				if (cause instanceof UndeclaredThrowableException) {
-					// May happen e.g. with Groovy-generated methods
-					cause = cause.getCause();
-				}
-				throw new MethodInvocationException(propertyChangeEvent, cause);
-			}
-		}
-		catch (Exception ex) {
-			PropertyChangeEvent pce = new PropertyChangeEvent(
-					getRootInstance(), this.nestedPath + tokens.canonicalName, oldValue, pv.getValue());
-			throw new MethodInvocationException(pce, ex);
-		}
-	}
+        Object oldValue = null;
+        try {
+            Object originalValue = pv.getValue();
+            Object valueToApply = originalValue;
+            if (!Boolean.FALSE.equals(pv.conversionNecessary)) {
+                if (pv.isConverted()) {
+                    valueToApply = pv.getConvertedValue();
+                }
+                else {
+                    if (isExtractOldValueForEditor() && ph.isReadable()) {
+                        try {
+                            oldValue = ph.getValue();
+                        }
+                        catch (Exception ex) {
+                            if (ex instanceof PrivilegedActionException) {
+                                ex = ((PrivilegedActionException) ex).getException();
+                            }
+                        }
+                    }
+                    valueToApply = convertForProperty(
+                            tokens.canonicalName, oldValue, originalValue, ph.toTypeDescriptor());
+                }
+                pv.getOriginalPropertyValue().conversionNecessary = (valueToApply != originalValue);
+            }
+            ph.setValue(valueToApply);
+        }
+        catch (TypeMismatchException ex) {
+            throw ex;
+        }
+        catch (InvocationTargetException ex) {
+            PropertyChangeEvent propertyChangeEvent = new PropertyChangeEvent(
+                    getRootInstance(), this.nestedPath + tokens.canonicalName, oldValue, pv.getValue());
+            if (ex.getTargetException() instanceof ClassCastException) {
+                throw new TypeMismatchException(propertyChangeEvent, ph.getPropertyType(), ex.getTargetException());
+            }
+            else {
+                Throwable cause = ex.getTargetException();
+                if (cause instanceof UndeclaredThrowableException) {
+                    // May happen e.g. with Groovy-generated methods
+                    cause = cause.getCause();
+                }
+                throw new MethodInvocationException(propertyChangeEvent, cause);
+            }
+        }
+        catch (Exception ex) {
+            PropertyChangeEvent pce = new PropertyChangeEvent(
+                    getRootInstance(), this.nestedPath + tokens.canonicalName, oldValue, pv.getValue());
+            throw new MethodInvocationException(pce, ex);
+        }
+    }
 ```
 
 1. 获取BeanPropertyHandler，如果返回null，或者Property不可写，则根据isOptional来决定直接返回还是抛出异常

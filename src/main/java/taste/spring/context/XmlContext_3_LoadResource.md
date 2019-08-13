@@ -3,53 +3,53 @@
 在[第二节:规整configLocation成Resource数组](./XmlContext_2_refresh.md)中，在初始化完BeanFactory和XmlBeanDefinitionReader对象后，XmlBeanDefinitionReader对象将每一个configLocation字符串规整为Resource数组完成后，开始遍历获取到的Resource数组，并在每个对象上调用的loadBeanDefinitions(Resource resource)方法来加载BeanDefinition到reader内部的BeanFactory中，代码如下：
 
 ```java
-	public int loadBeanDefinitions(Resource resource) throws BeanDefinitionStoreException {
-		return loadBeanDefinitions(new EncodedResource(resource));
-	}
+    public int loadBeanDefinitions(Resource resource) throws BeanDefinitionStoreException {
+        return loadBeanDefinitions(new EncodedResource(resource));
+    }
 ```
 
 调用下面的方法
 
 ```java
-	public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefinitionStoreException {
-		Assert.notNull(encodedResource, "EncodedResource must not be null");
-		if (logger.isTraceEnabled()) {
-			logger.trace("Loading XML bean definitions from " + encodedResource);
-		}
+    public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefinitionStoreException {
+        Assert.notNull(encodedResource, "EncodedResource must not be null");
+        if (logger.isTraceEnabled()) {
+            logger.trace("Loading XML bean definitions from " + encodedResource);
+        }
 
-		Set<EncodedResource> currentResources = this.resourcesCurrentlyBeingLoaded.get();
-		if (currentResources == null) {
-			currentResources = new HashSet<>(4);
-			this.resourcesCurrentlyBeingLoaded.set(currentResources);
-		}
-		if (!currentResources.add(encodedResource)) {
-			throw new BeanDefinitionStoreException(
-					"Detected cyclic loading of " + encodedResource + " - check your import definitions!");
-		}
-		try {
-			InputStream inputStream = encodedResource.getResource().getInputStream();
-			try {
-				InputSource inputSource = new InputSource(inputStream);
-				if (encodedResource.getEncoding() != null) {
-					inputSource.setEncoding(encodedResource.getEncoding());
-				}
-				return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
-			}
-			finally {
-				inputStream.close();
-			}
-		}
-		catch (IOException ex) {
-			throw new BeanDefinitionStoreException(
-					"IOException parsing XML document from " + encodedResource.getResource(), ex);
-		}
-		finally {
-			currentResources.remove(encodedResource);
-			if (currentResources.isEmpty()) {
-				this.resourcesCurrentlyBeingLoaded.remove();
-			}
-		}
-	}
+        Set<EncodedResource> currentResources = this.resourcesCurrentlyBeingLoaded.get();
+        if (currentResources == null) {
+            currentResources = new HashSet<>(4);
+            this.resourcesCurrentlyBeingLoaded.set(currentResources);
+        }
+        if (!currentResources.add(encodedResource)) {
+            throw new BeanDefinitionStoreException(
+                    "Detected cyclic loading of " + encodedResource + " - check your import definitions!");
+        }
+        try {
+            InputStream inputStream = encodedResource.getResource().getInputStream();
+            try {
+                InputSource inputSource = new InputSource(inputStream);
+                if (encodedResource.getEncoding() != null) {
+                    inputSource.setEncoding(encodedResource.getEncoding());
+                }
+                return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
+            }
+            finally {
+                inputStream.close();
+            }
+        }
+        catch (IOException ex) {
+            throw new BeanDefinitionStoreException(
+                    "IOException parsing XML document from " + encodedResource.getResource(), ex);
+        }
+        finally {
+            currentResources.remove(encodedResource);
+            if (currentResources.isEmpty()) {
+                this.resourcesCurrentlyBeingLoaded.remove();
+            }
+        }
+    }
 ```
 
 代码逻辑如下：
@@ -88,9 +88,9 @@ Spring采用SAX方式读取xml配置文件，实际调用的是DefaultDocumentLo
 具体简化为
 
 ```java
-	DocumentBuilderFactory factory = createDocumentBuilderFactory(validationMode, namespaceAware);
-	DocumentBuilder builder = createDocumentBuilder(factory, entityResolver, errorHandler);
-	return builder.parse(inputSource);
+    DocumentBuilderFactory factory = createDocumentBuilderFactory(validationMode, namespaceAware);
+    DocumentBuilder builder = createDocumentBuilder(factory, entityResolver, errorHandler);
+    return builder.parse(inputSource);
 ```
 
 第一步构建DocumentBuilderFactory，第二步构建DocumentBuilder，第三步调用parse方法来加载文件流到Document对象
@@ -98,26 +98,26 @@ Spring采用SAX方式读取xml配置文件，实际调用的是DefaultDocumentLo
 ### 1.2.2 DOM文件解析成beanDefinition
 
 ```java
-	public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
-		BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
-		int countBefore = getRegistry().getBeanDefinitionCount();
-		documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
-		return getRegistry().getBeanDefinitionCount() - countBefore;
-	}
+    public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
+        BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
+        int countBefore = getRegistry().getBeanDefinitionCount();
+        documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
+        return getRegistry().getBeanDefinitionCount() - countBefore;
+    }
 ```
 
 第一步初始化了BeanDefinitionDocumentReader类型的对象，在此是DefaultBeanDefinitionDocumentReader类，然后调用其registerBeanDefinitions方法来进行bean的注册，调用完成后通过检查BeanFactory内部Bean的数量变化，返回实际初始化的bean，此方法第二个参数是XmlReaderContext对象，调用的构造函数为
 
 ```java
-	public XmlReaderContext(
-			Resource resource, ProblemReporter problemReporter,
-			ReaderEventListener eventListener, SourceExtractor sourceExtractor,
-			XmlBeanDefinitionReader reader, NamespaceHandlerResolver namespaceHandlerResolver) {
+    public XmlReaderContext(
+            Resource resource, ProblemReporter problemReporter,
+            ReaderEventListener eventListener, SourceExtractor sourceExtractor,
+            XmlBeanDefinitionReader reader, NamespaceHandlerResolver namespaceHandlerResolver) {
 
-		super(resource, problemReporter, eventListener, sourceExtractor);
-		this.reader = reader;
-		this.namespaceHandlerResolver = namespaceHandlerResolver;
-	}
+        super(resource, problemReporter, eventListener, sourceExtractor);
+        this.reader = reader;
+        this.namespaceHandlerResolver = namespaceHandlerResolver;
+    }
 ```
 
 其中参数：
@@ -132,35 +132,35 @@ Spring采用SAX方式读取xml配置文件，实际调用的是DefaultDocumentLo
 此方法负责初始化delegate，校验处理profile，并调用方法来处理DOM对象，代码简化如下：
 
 ```java
-	protected void doRegisterBeanDefinitions(Element root) {
-		// <beans>元素的嵌套会导致递归调用，为保证<beans>元素的default-*属性能正确传导，因此对于每个子元素的delegate，
-		// 均记录父delegate以便fallback和回溯
-		BeanDefinitionParserDelegate parent = this.delegate;
-		this.delegate = createDelegate(getReaderContext(), root, parent);
+    protected void doRegisterBeanDefinitions(Element root) {
+        // <beans>元素的嵌套会导致递归调用，为保证<beans>元素的default-*属性能正确传导，因此对于每个子元素的delegate，
+        // 均记录父delegate以便fallback和回溯
+        BeanDefinitionParserDelegate parent = this.delegate;
+        this.delegate = createDelegate(getReaderContext(), root, parent);
 
-		if (this.delegate.isDefaultNamespace(root)) {
-			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
-			if (StringUtils.hasText(profileSpec)) {
-				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
-						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
-				// We cannot use Profiles.of(...) since profile expressions are not supported
-				// in XML config. See SPR-12458 for details.
-				if (!getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
-								"] not matching: " + getReaderContext().getResource());
-					}
-					return;
-				}
-			}
-		}
+        if (this.delegate.isDefaultNamespace(root)) {
+            String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
+            if (StringUtils.hasText(profileSpec)) {
+                String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
+                        profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
+                // We cannot use Profiles.of(...) since profile expressions are not supported
+                // in XML config. See SPR-12458 for details.
+                if (!getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
+                                "] not matching: " + getReaderContext().getResource());
+                    }
+                    return;
+                }
+            }
+        }
 
-		preProcessXml(root);
-		parseBeanDefinitions(root, this.delegate);
-		postProcessXml(root);
+        preProcessXml(root);
+        parseBeanDefinitions(root, this.delegate);
+        postProcessXml(root);
 
-		this.delegate = parent;
-	}
+        this.delegate = parent;
+    }
 ```
 
 处理过程一共5步：
@@ -178,26 +178,26 @@ Spring采用SAX方式读取xml配置文件，实际调用的是DefaultDocumentLo
 调用createDelegate(getReaderContext(), root, parent)方法来创建解析代理，此方法首先初始化BeanDefinitionParserDelegate实例，并将readerContext传入，然后将一些beans元素的默认属性从父节点扩散到当前节点，这些属性列举如下：
 
 ```java
-	@Nullable
-	private String lazyInit;
+    @Nullable
+    private String lazyInit;
 
-	@Nullable
-	private String merge;
+    @Nullable
+    private String merge;
 
-	@Nullable
-	private String autowire;
+    @Nullable
+    private String autowire;
 
-	@Nullable
-	private String autowireCandidates;
+    @Nullable
+    private String autowireCandidates;
 
-	@Nullable
-	private String initMethod;
+    @Nullable
+    private String initMethod;
 
-	@Nullable
-	private String destroyMethod;
+    @Nullable
+    private String destroyMethod;
 
-	@Nullable
-	private Object source;
+    @Nullable
+    private Object source;
 ```
 
 ##### 1.2.2.1.2 校验profile
@@ -207,26 +207,26 @@ Spring采用SAX方式读取xml配置文件，实际调用的是DefaultDocumentLo
 ##### 1.2.2.1.3 DOM对象解析成BeanDefinition：preProcessXml(root)
 
 ```java
-	protected void parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
-		if (delegate.isDefaultNamespace(root)) {
-			NodeList nl = root.getChildNodes();
-			for (int i = 0; i < nl.getLength(); i++) {
-				Node node = nl.item(i);
-				if (node instanceof Element) {
-					Element ele = (Element) node;
-					if (delegate.isDefaultNamespace(ele)) {
-						parseDefaultElement(ele, delegate);
-					}
-					else {
-						delegate.parseCustomElement(ele);
-					}
-				}
-			}
-		}
-		else {
-			delegate.parseCustomElement(root);
-		}
-	}
+    protected void parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
+        if (delegate.isDefaultNamespace(root)) {
+            NodeList nl = root.getChildNodes();
+            for (int i = 0; i < nl.getLength(); i++) {
+                Node node = nl.item(i);
+                if (node instanceof Element) {
+                    Element ele = (Element) node;
+                    if (delegate.isDefaultNamespace(ele)) {
+                        parseDefaultElement(ele, delegate);
+                    }
+                    else {
+                        delegate.parseCustomElement(ele);
+                    }
+                }
+            }
+        }
+        else {
+            delegate.parseCustomElement(root);
+        }
+    }
 ```
 
 在此方法中，沿传入的root节点遍历DOM树，对于每个节点，判断namespace，如果是Spring的默认命名空间，则沿树向下遍历到类型为Element的叶子节点，调用delegate的parseDefaultElement(ele,delegate)方法，如果某个节点namespace非默认，则调用delegate的parseCustomElement(ele)方法
@@ -234,21 +234,21 @@ Spring采用SAX方式读取xml配置文件，实际调用的是DefaultDocumentLo
 ###### 1.2.2.3.4 parseDefaultElement(ele,delegate)方法
 
 ```java
-	private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
-		if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
-			importBeanDefinitionResource(ele);
-		}
-		else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
-			processAliasRegistration(ele);
-		}
-		else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
-			processBeanDefinition(ele, delegate);
-		}
-		else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
-			// recurse
-			doRegisterBeanDefinitions(ele);
-		}
-	}
+    private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
+        if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
+            importBeanDefinitionResource(ele);
+        }
+        else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
+            processAliasRegistration(ele);
+        }
+        else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
+            processBeanDefinition(ele, delegate);
+        }
+        else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
+            // recurse
+            doRegisterBeanDefinitions(ele);
+        }
+    }
 ```
 
 通过判断DOM节点的name或localname，比对预定义的三种bean类型(import，alias，bean)来调用对应的process方法，如果发现是嵌套的\<beans\>对象，则递归调用doRegisterBeanDefinitions(ele)方法。

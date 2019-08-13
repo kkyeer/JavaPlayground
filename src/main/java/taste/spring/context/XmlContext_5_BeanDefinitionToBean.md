@@ -285,8 +285,7 @@ AbstractBeanFacory内关于获取Singleton类型bean的代码如下
 
 ```java
     @Override
-    protected Object getObjectForBeanInstance(
-            Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
+    protected Object getObjectForBeanInstance( Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
         String currentlyCreatedBean = this.currentlyCreatedBean.get();
         if (currentlyCreatedBean != null) {
@@ -300,42 +299,46 @@ AbstractBeanFacory内关于获取Singleton类型bean的代码如下
 父类AbstractBeanFactory的实现：
 
 ```java
-	protected Object getObjectForBeanInstance(
-			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
+    protected Object getObjectForBeanInstance(
+            Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
-		// Don't let calling code try to dereference the factory if the bean isn't a factory.
-		if (BeanFactoryUtils.isFactoryDereference(name)) {
-			if (beanInstance instanceof NullBean) {
-				return beanInstance;
-			}
-			if (!(beanInstance instanceof FactoryBean)) {
-				throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
-			}
-		}
+        // Don't let calling code try to dereference the factory if the bean isn't a factory.
+        if (BeanFactoryUtils.isFactoryDereference(name)) {
+            if (beanInstance instanceof NullBean) {
+                return beanInstance;
+            }
+            if (!(beanInstance instanceof FactoryBean)) {
+                throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
+            }
+        }
 
-		// Now we have the bean instance, which may be a normal bean or a FactoryBean.
-		// If it's a FactoryBean, we use it to create a bean instance, unless the
-		// caller actually wants a reference to the factory.
-		if (!(beanInstance instanceof FactoryBean) || BeanFactoryUtils.isFactoryDereference(name)) {
-			return beanInstance;
-		}
+        // Now we have the bean instance, which may be a normal bean or a FactoryBean.
+        // If it's a FactoryBean, we use it to create a bean instance, unless the
+        // caller actually wants a reference to the factory.
+        if (!(beanInstance instanceof FactoryBean) || BeanFactoryUtils.isFactoryDereference(name)) {
+            return beanInstance;
+        }
 
-		Object object = null;
-		if (mbd == null) {
-			object = getCachedObjectForFactoryBean(beanName);
-		}
-		if (object == null) {
-			// Return bean instance from factory.
-			FactoryBean<?> factory = (FactoryBean<?>) beanInstance;
-			// Caches object obtained from FactoryBean if it is a singleton.
-			if (mbd == null && containsBeanDefinition(beanName)) {
-				mbd = getMergedLocalBeanDefinition(beanName);
-			}
-			boolean synthetic = (mbd != null && mbd.isSynthetic());
-			object = getObjectFromFactoryBean(factory, beanName, !synthetic);
-		}
-		return object;
-	}
+        Object object = null;
+        if (mbd == null) {
+            object = getCachedObjectForFactoryBean(beanName);
+        }
+        if (object == null) {
+            // Return bean instance from factory.
+            FactoryBean<?> factory = (FactoryBean<?>) beanInstance;
+            // Caches object obtained from FactoryBean if it is a singleton.
+            if (mbd == null && containsBeanDefinition(beanName)) {
+                mbd = getMergedLocalBeanDefinition(beanName);
+            }
+            boolean synthetic = (mbd != null && mbd.isSynthetic());
+            object = getObjectFromFactoryBean(factory, beanName, !synthetic);
+        }
+        return object;
+    }
 ```
 
-如果是需要FactoryBean本身或者压根不是FactoryBean，则返回Bean实例
+如果是需要FactoryBean本身或者压根不是FactoryBean，则返回Bean实例，否则调用getObjectFromFactoryBean方法，从FactoryBean中获取Bean实例返回
+
+#### 1.3.3.2. "prototype"
+
+#### 1.3.3.3. "prototype"
