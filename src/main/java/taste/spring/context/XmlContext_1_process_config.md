@@ -302,8 +302,486 @@ ClassPathXmlApplicationContext没有复写此方法，实际调用的是父类Ab
 调用初始化完成的上下文的BeanFactory的getBean方法：
 
 ```java
-	@Override
-	public <T> T getBean(Class<T> requiredType) throws BeansException {
-		return getBean(requiredType, (Object[]) null);
+    @Override
+    public <T> T getBean(Class<T> requiredType) throws BeansException {
+        assertBeanFactoryActive();
+        return getBeanFactory().getBean(requiredType);
+    }
+```
+
+1. 断言BeanFactory的状态：断言当前的上下文是否状态处于active且非closed，但实际上对于ClassPathXmlApplicationContext而言，父类AbstractRefreshableApplicationContext复写了这个方法，因为BeanFactory的状态由内部的BeanFactory来维护
+2. 获取BeanFactory，调用BeanFactory的getBean方法来获取Bean，对于ClassPathXmlApplicationContext来说，内部的BeanFactory是DefaultListableBeanFactory类，所以调用的也是这个类的getBean方法：
+
+    ```java
+        public <T> T getBean(Class<T> requiredType, @Nullable Object... args) throws BeansException {
+            Assert.notNull(requiredType, "Required type must not be null");
+            Object resolved = resolveBean(ResolvableType.forRawClass(requiredType), args, false);
+            if (resolved == null) {
+                throw new NoSuchBeanDefinitionException(requiredType);
+            }
+            return (T) resolved;
+        }
+    ```
+
+    1. 根据Class获取ResolvableType
+    2. 根据ResolvableType获取Bean
+
+### 2.2.1 根据Class获取ResolvableType
+
+此类型是对java.lang.reflect.Type的封装（装饰模式）
+
+```java
+    public static ResolvableType forRawClass(@Nullable Class<?> clazz) {
+        return new ResolvableType(clazz) {
+            @Override
+            public ResolvableType[] getGenerics() {
+                return EMPTY_TYPES_ARRAY;
+            }
+            @Override
+            public boolean isAssignableFrom(Class<?> other) {
+                return (clazz == null || ClassUtils.isAssignable(clazz, other));
+            }
+            @Override
+            public boolean isAssignableFrom(ResolvableType other) {
+                Class<?> otherClass = other.getRawClass();
+                return (otherClass != null && (clazz == null || ClassUtils.isAssignable(clazz, otherClass)));
+            }
+        };
+    }
+```
+
+### 2.2.2 根据ResolvableType获取Bean
+
+```java
+    @Nullable
+    private <T> T resolveBean(ResolvableType requiredType, @Nullable Object[] args, boolean nonUniqueAsNull) {
+        NamedBeanHolder<T> namedBean = resolveNamedBean(requiredType, args, nonUniqueAsNull);
+        if (namedBean != null) {
+            return namedBean.getBeanInstance();
+        }
+        BeanFactory parent = getParentBeanFactory();
+        if (parent instanceof DefaultListableBeanFactory) {
+            return ((DefaultListableBeanFactory) parent).resolveBean(requiredType, args, nonUniqueAsNull);
+        }
+        else if (parent != null) {
+            ObjectProvider<T> parentProvider = parent.getBeanProvider(requiredType);
+            if (args != null) {
+                return parentProvider.getObject(args);
+            }
+            else {
+                return (nonUniqueAsNull ? parentProvider.getIfUnique() : parentProvider.getIfAvailable());
+            }
+        }
+        return null;
+    }
+```
+
+1. 尝试获取NamedBeanHolder
+2. 如果第一步未获取成功，则尝试从父BeanFactory加载Bean：
+    1. 如果父BeanFactory是DefaultListableBeanFactory类型，则递归调用resolveBean方法
+    2. 否则调用parent.getBeanProvider(requiredType)，然后调用相关方法获取Bean
+
+#### 2.2.2.1 获取NamedBeanHolder
+
+```java
+    @Nullable
+    private <T> NamedBeanHolder<T> resolveNamedBean(
+            ResolvableType requiredType, @Nullable Object[] args, boolean nonUniqueAsNull) throws BeansException {
+
+        Assert.notNull(requiredType, "Required type must not be null");
+        String[] candidateNames = getBeanNamesForType(requiredType);
+
+        if (candidateNames.length > 1) {
+            List<String> autowireCandidates = new ArrayList<>(candidateNames.length);
+            for (String beanName : candidateNames) {
+                if (!containsBeanDefinition(beanName) || getBeanDefinition(beanName).isAutowireCandidate()) {
+                    autowireCandidates.add(beanName);
+                }
+            }
+            if (!autowireCandidates.isEmpty()) {
+                candidateNames = StringUtils.toStringArray(autowireCandidates);
+            }
+        }
+
+        if (candidateNames.length == 1) {
+            String beanName = candidateNames[0];
+            return new NamedBeanHolder<>(beanName, (T) getBean(beanName, requiredType.toClass(), args));
+        }
+        else if (candidateNames.length > 1) {
+            Map<String, Object> candidates = new LinkedHashMap<>(candidateNames.length);
+            for (String beanName : candidateNames) {
+                if (containsSingleton(beanName) && args == null) {
+                    Object beanInstance = getBean(beanName);
+                    candidates.put(beanName, (beanInstance instanceof NullBean ? null : beanInstance));
+                }
+                else {
+                    candidates.put(beanName, getType(beanName));
+                }
+            }
+            String candidateName = determinePrimaryCandidate(candidates, requiredType.toClass());
+            if (candidateName == null) {
+                candidateName = determineHighestPriorityCandidate(candidates, requiredType.toClass());
+            }
+            if (candidateName != null) {
+                Object beanInstance = candidates.get(candidateName);
+                if (beanInstance == null || beanInstance instanceof Class) {
+                    beanInstance = getBean(candidateName, requiredType.toClass(), args);
+                }
+                return new NamedBeanHolder<>(candidateName, (T) beanInstance);
+            }
+            if (!nonUniqueAsNull) {
+                throw new NoUniqueBeanDefinitionException(requiredType, candidates.keySet());
+            }
+        }
+
+        return null;
+    }
+```
+
+1. 根据Class对象查找可能的BeanName数组，查找出了多个BeanName，过滤BeanName数组，只留下beanDefinitionMap没有的，或者AutowireCandidate的Bean的Name
+2. 如果上面过滤以后，只剩一个BeanName，则调用getBean的重载方法```getBean(String name, @Nullable Class<T> requiredType, @Nullable Object... args)```来获取Bean实例，跟剩下的这个BeanName一起包裹到一个NamedBeanHolder对象中返回
+3. 如果第2步过滤以后，还有多个BeanName，则调用匹配到多个BeanName的逻辑
+
+##### 2.2.2.1.1 根据Class对象获取BeanName数组
+
+```java
+    @Override
+    public String[] getBeanNamesForType(ResolvableType type) {
+        Class<?> resolved = type.resolve();
+        if (resolved != null && !type.hasGenerics()) {
+            return getBeanNamesForType(resolved, true, true);
+        }
+        else {
+            return doGetBeanNamesForType(type, true, true);
+        }
+    }
+```
+
+1. 对于目标Class没有泛型定义的，调用重载方法```getBeanNamesForType(resolved, true, true)```
+2. 对于有泛型定义的Class对象，调用```doGetBeanNamesForType(type, true, true)```方法来获取BeanName数组
+
+###### 2.2.2.1.1.1 非泛型类获取BeanName数组
+
+```java
+    @Override
+    public String[] getBeanNamesForType(@Nullable Class<?> type, boolean includeNonSingletons, boolean allowEagerInit) {
+        if (!isConfigurationFrozen() || type == null || !allowEagerInit) {
+            return doGetBeanNamesForType(ResolvableType.forRawClass(type), includeNonSingletons, allowEagerInit);
+        }
+        Map<Class<?>, String[]> cache =
+                (includeNonSingletons ? this.allBeanNamesByType : this.singletonBeanNamesByType);
+        String[] resolvedBeanNames = cache.get(type);
+        if (resolvedBeanNames != null) {
+            return resolvedBeanNames;
+        }
+        resolvedBeanNames = doGetBeanNamesForType(ResolvableType.forRawClass(type), includeNonSingletons, true);
+        if (ClassUtils.isCacheSafe(type, getBeanClassLoader())) {
+            cache.put(type, resolvedBeanNames);
+        }
+        return resolvedBeanNames;
+    }
+```
+
+1. 获取Class对象到String[]数组的缓存:如果仅查找单例则this.singletonBeanNamesByType，否则this.allBeanNamesByType，在此缓存里查找，查找到直接返回对应的BeanName数组
+2. 如果缓存没有查找到，则还是调用```doGetBeanNamesForType(ResolvableType.forRawClass(type), includeNonSingletons, true)```方法来获取实例BeanName数组
+3. 校验Class是否由当前上下文的Classloader加载的，如果是，则把获取到的Class到BeanName数组放入缓存
+
+###### 2.2.2.1.1.2 获取BeanName数组的核心方法：doGetBeanNamesForType
+
+```java
+
+    private String[] doGetBeanNamesForType(ResolvableType type, boolean includeNonSingletons, boolean allowEagerInit) {
+        List<String> result = new ArrayList<>();
+
+        // Check all bean definitions.
+        for (String beanName : this.beanDefinitionNames) {
+            // Only consider bean as eligible if the bean name
+            // is not defined as alias for some other bean.
+            if (!isAlias(beanName)) {
+                try {
+                    RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
+                    // Only check bean definition if it is complete.
+                    if (!mbd.isAbstract() && (allowEagerInit ||
+                            (mbd.hasBeanClass() || !mbd.isLazyInit() || isAllowEagerClassLoading()) &&
+                                    !requiresEagerInitForType(mbd.getFactoryBeanName()))) {
+                        // In case of FactoryBean, match object created by FactoryBean.
+                        boolean isFactoryBean = isFactoryBean(beanName, mbd);
+                        BeanDefinitionHolder dbd = mbd.getDecoratedDefinition();
+                        boolean matchFound =
+                                (allowEagerInit || !isFactoryBean ||
+                                        (dbd != null && !mbd.isLazyInit()) || containsSingleton(beanName)) &&
+                                (includeNonSingletons ||
+                                        (dbd != null ? mbd.isSingleton() : isSingleton(beanName))) &&
+                                isTypeMatch(beanName, type);
+                        if (!matchFound && isFactoryBean) {
+                            // In case of FactoryBean, try to match FactoryBean instance itself next.
+                            beanName = FACTORY_BEAN_PREFIX + beanName;
+                            matchFound = (includeNonSingletons || mbd.isSingleton()) && isTypeMatch(beanName, type);
+                        }
+                        if (matchFound) {
+                            result.add(beanName);
+                        }
+                    }
+                }
+                catch (CannotLoadBeanClassException ex) {
+                    if (allowEagerInit) {
+                        throw ex;
+                    }
+                    onSuppressedException(ex);
+                }
+                catch (BeanDefinitionStoreException ex) {
+                    if (allowEagerInit) {
+                        throw ex;
+                    }
+                    onSuppressedException(ex);
+                }
+            }
+        }
+
+        // Check manually registered singletons too.
+        for (String beanName : this.manualSingletonNames) {
+            try {
+                // In case of FactoryBean, match object created by FactoryBean.
+                if (isFactoryBean(beanName)) {
+                    if ((includeNonSingletons || isSingleton(beanName)) && isTypeMatch(beanName, type)) {
+                        result.add(beanName);
+                        // Match found for this bean: do not match FactoryBean itself anymore.
+                        continue;
+                    }
+                    // In case of FactoryBean, try to match FactoryBean itself next.
+                    beanName = FACTORY_BEAN_PREFIX + beanName;
+                }
+                // Match raw bean instance (might be raw FactoryBean).
+                if (isTypeMatch(beanName, type)) {
+                    result.add(beanName);
+                }
+            }
+            catch (NoSuchBeanDefinitionException ex) {
+            }
+        }
+
+        return StringUtils.toStringArray(result);
+    }
+```
+
+1. 遍历当前BeanFactory的beanDefinitionNames缓存，这个缓存里存储了所有的BeanName，这里只处理非alias的BeanName：
+    1. 获取RootBeanDefinition
+    2. 校验获取到的bd是否complete，需要满足下面所有条件
+        1. 非抽象类
+        2. 满足下列所有条件
+            1. 满足下列条件之一
+                - 允许EagerInit
+                - 满足下列条件之一
+                    - bd已经解析出BeanClass
+                    - bd非懒加载
+                    - beanFactory允许饿汉式加载Class
+            2. 不需要EagerInit(Bean不是未初始化完成的FactoryBean)
+    3. 判断类型是否匹配到,需要满足下列所有条件：
+        1. 下列条件之一
+            - 允许EagerInit
+            - 非FactoryBean
+            - bd内部的decoratedDefinition非空或者bd非懒加载
+            - 当前BeanFactory已经初始化完成beanName对应的bean
+        2. 下列条件之一
+            - 在非单例里查找
+            - 只查找单例且Bean确实是单例
+        3. BeanFactory内部此BeanName对应的Bean实例与目标ResolvableType匹配：
+            1. 对于FactoryBean，校验的是FactoryBean获取的Object的类型是否与ResolvableType匹配
+            2. 是否匹配，调用的是ResolvableType的isAssignableFrom方法，实际是ClassUtils.isAssignable方法
+    4. 如果上一步没有匹配到而且是FactoryBean，那么试试匹配FactoryBean本身类型是否是目标类型
+    5. 如果第3，4步匹配到了，则把当前迭代的BeanName放入最终返回的结果数组里
+2. 遍历当前BeanFactory的manualSingletonName缓存，这个缓存里存储了所有的BeanName，这里只处理非alias的BeanName：
+    1. 如果是工厂类，判断FactoryBean和其创建的对象是否类型匹配
+    2. 如果不是，直接判断是否类型匹配
+    3. 如果第1，2步匹配到了，则把当前迭代的BeanName放入最终返回的结果数组里
+
+##### 2.2.2.1.2 根据BeanName获取到Bean实例的过程
+
+```java
+	public <T> T getBean(String name, @Nullable Class<T> requiredType, @Nullable Object... args)
+			throws BeansException {
+
+		return doGetBean(name, requiredType, args, false);
 	}
 ```
+
+到
+
+```java
+	protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredType,
+			@Nullable final Object[] args, boolean typeCheckOnly) throws BeansException {
+
+		final String beanName = transformedBeanName(name);
+		Object bean;
+
+		// Eagerly check singleton cache for manually registered singletons.
+		Object sharedInstance = getSingleton(beanName);
+		if (sharedInstance != null && args == null) {
+			if (logger.isTraceEnabled()) {
+				if (isSingletonCurrentlyInCreation(beanName)) {
+					logger.trace("Returning eagerly cached instance of singleton bean '" + beanName +
+							"' that is not fully initialized yet - a consequence of a circular reference");
+				}
+				else {
+					logger.trace("Returning cached instance of singleton bean '" + beanName + "'");
+				}
+			}
+			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
+		}
+
+		else {
+			// Fail if we're already creating this bean instance:
+			// We're assumably within a circular reference.
+			if (isPrototypeCurrentlyInCreation(beanName)) {
+				throw new BeanCurrentlyInCreationException(beanName);
+			}
+
+			// Check if bean definition exists in this factory.
+			BeanFactory parentBeanFactory = getParentBeanFactory();
+			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
+				// Not found -> check parent.
+				String nameToLookup = originalBeanName(name);
+				if (parentBeanFactory instanceof AbstractBeanFactory) {
+					return ((AbstractBeanFactory) parentBeanFactory).doGetBean(
+							nameToLookup, requiredType, args, typeCheckOnly);
+				}
+				else if (args != null) {
+					// Delegation to parent with explicit args.
+					return (T) parentBeanFactory.getBean(nameToLookup, args);
+				}
+				else if (requiredType != null) {
+					// No args -> delegate to standard getBean method.
+					return parentBeanFactory.getBean(nameToLookup, requiredType);
+				}
+				else {
+					return (T) parentBeanFactory.getBean(nameToLookup);
+				}
+			}
+
+			if (!typeCheckOnly) {
+				markBeanAsCreated(beanName);
+			}
+
+			try {
+				final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
+				checkMergedBeanDefinition(mbd, beanName, args);
+
+				// Guarantee initialization of beans that the current bean depends on.
+				String[] dependsOn = mbd.getDependsOn();
+				if (dependsOn != null) {
+					for (String dep : dependsOn) {
+						if (isDependent(beanName, dep)) {
+							throw new BeanCreationException(mbd.getResourceDescription(), beanName,
+									"Circular depends-on relationship between '" + beanName + "' and '" + dep + "'");
+						}
+						registerDependentBean(dep, beanName);
+						try {
+							getBean(dep);
+						}
+						catch (NoSuchBeanDefinitionException ex) {
+							throw new BeanCreationException(mbd.getResourceDescription(), beanName,
+									"'" + beanName + "' depends on missing bean '" + dep + "'", ex);
+						}
+					}
+				}
+
+				// Create bean instance.
+				if (mbd.isSingleton()) {
+					sharedInstance = getSingleton(beanName, () -> {
+						try {
+							return createBean(beanName, mbd, args);
+						}
+						catch (BeansException ex) {
+							// Explicitly remove instance from singleton cache: It might have been put there
+							// eagerly by the creation process, to allow for circular reference resolution.
+							// Also remove any beans that received a temporary reference to the bean.
+							destroySingleton(beanName);
+							throw ex;
+						}
+					});
+					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+				}
+
+				else if (mbd.isPrototype()) {
+					// It's a prototype -> create a new instance.
+					Object prototypeInstance = null;
+					try {
+						beforePrototypeCreation(beanName);
+						prototypeInstance = createBean(beanName, mbd, args);
+					}
+					finally {
+						afterPrototypeCreation(beanName);
+					}
+					bean = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
+				}
+
+				else {
+					String scopeName = mbd.getScope();
+					final Scope scope = this.scopes.get(scopeName);
+					if (scope == null) {
+						throw new IllegalStateException("No Scope registered for scope name '" + scopeName + "'");
+					}
+					try {
+						Object scopedInstance = scope.get(beanName, () -> {
+							beforePrototypeCreation(beanName);
+							try {
+								return createBean(beanName, mbd, args);
+							}
+							finally {
+								afterPrototypeCreation(beanName);
+							}
+						});
+						bean = getObjectForBeanInstance(scopedInstance, name, beanName, mbd);
+					}
+					catch (IllegalStateException ex) {
+						throw new BeanCreationException(beanName,
+								"Scope '" + scopeName + "' is not active for the current thread; consider " +
+								"defining a scoped proxy for this bean if you intend to refer to it from a singleton",
+								ex);
+					}
+				}
+			}
+			catch (BeansException ex) {
+				cleanupAfterBeanCreationFailure(beanName);
+				throw ex;
+			}
+		}
+
+		// Check if required type matches the type of the actual bean instance.
+		if (requiredType != null && !requiredType.isInstance(bean)) {
+			try {
+				T convertedBean = getTypeConverter().convertIfNecessary(bean, requiredType);
+				if (convertedBean == null) {
+					throw new BeanNotOfRequiredTypeException(name, requiredType, bean.getClass());
+				}
+				return convertedBean;
+			}
+			catch (TypeMismatchException ex) {
+				if (logger.isTraceEnabled()) {
+					logger.trace("Failed to convert bean '" + name + "' to required type '" +
+							ClassUtils.getQualifiedName(requiredType) + "'", ex);
+				}
+				throw new BeanNotOfRequiredTypeException(name, requiredType, bean.getClass());
+			}
+		}
+		return (T) bean;
+	}
+```
+
+1. 尝试从singletonObjects或者earlySingletonObjects中获取单例实例
+2. 如果第1步获取到bean实例，则调用getObjectForBeanInstance方法将bean实例转换为对象：
+    1. 如果不是FactoryBean或者需要获取FactoryBean本身，返回传入的Bean实例
+    2. 如果是FactoryBean且需要获取其生产的Object，则：
+        1. 尝试从factoryBeanObjectCache中获取已缓存的Object
+        2. 尝试从FactoryBean中获取Object
+3. 如果第1步未获取到bean实例，则可能当前处于循环引用的过程
+    1. 当前BeanFactory不包含对应的bd：递归调用父BeanFactory的各种获取Bean的重载方法获取Bean
+    2. 当前BeanFactory包含对应的bd：初始化Bean，调用getObjectForBeanInstance方法将bean实例转换为对象
+4. 判断2或者3获取到的bean是否已经是目标类型，如果不是，调用BeanFactory的TypeConverter来进行类型转换
+5. 返回bean
+
+##### 2.2.2.1.3 匹配到多个beanName的策略
+
+1. 如果是PrimaryBean，则返回第一个匹配到的BeanName
+2. 如果上面没有获取到，则获取最高优先级的BeanName
+3. 1，2步应该可以获取到唯一的BeanName，获取对象并返回
