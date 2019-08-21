@@ -769,34 +769,167 @@
 
 174. 说一下 mysql 常用的引擎？
 
-    - myissam,支持全文索引
-    - innodb，不支持全文索引
+    - MyISAM,支持全文索引，不支持事务，保存行数
+    - innodb，不支持全文索引，支持事务，不保存行数
 
 175. 说一下 mysql 的行锁和表锁？
 
-176.说一下乐观锁和悲观锁？
+    - (BLog)[https://blog.csdn.net/tr1912/article/details/81323256]
+    - 表锁：偏向MyISAM引擎，开销小，加锁快，无死锁，粒度大，并发性能差:
+        - 加锁：lock table mytable read;
+        - 释放所有锁：unlock tables;
+        - 查看加锁的表：show open tables;In_use 列为1 的就是加锁的表
+        - 分析：show status like 'table%';
+            - Table_locks_immediate：产生表级锁定的次数，表示可以立即获取锁的查询次数，每立即获取锁值加1 。
+            - Table_locks_waited：出现表级锁定争用而发生等待的次数(不能立即获取锁的次数，每等待一次锁值加1)，此值高则说明存在着较严重的表级锁争用情况。
+    - 行锁：偏向InnoDB引擎，粒度小，开销大，并发性能高，可能产生死锁
+    - 间隙锁：如果检索的数据条件不是相等而是区间，InnoDB会给符合条件的已有数据记录的索引项加锁；对于键值在条件范围内但实际上没有对应记录的，称之为GAP，InnoDB也会对这些GAP加锁，称之为间隙锁
+        - 问题：当插入操作涉及到已加间隙锁的GAP对应的键值时，由于间隙锁的存在，相应线程无法进行插入操作，造成性能下降
 
-177.mysql 问题排查都有哪些手段？
+176. 说一下乐观锁和悲观锁？
 
-178.如何做 mysql 的性能优化？
+    - 悲观锁，先获取锁再操作，缺点是对竞争概率小的场景，由于每次操作均需要加锁，会造成性能损失，对于MySQL来说需要显式进行加锁比如" select * from * for update"，需要注意的是MySQL在执行相应的操作时，会主动锁定所有相关行的行锁
+    - 乐观锁，先操作，如果涉及到数据竞争，则尝试获取锁，如果没有获取到锁，则回滚操作。优点是在低竞争条件下性能较好，缺点是如果获取锁失败的概率大，因为回滚成本较高，性能会降低
 
-十八、Redis
+177. mysql 问题排查都有哪些手段？
 
-179.redis 是什么？都有哪些使用场景？
+    - 事物级别
+        select @@global.tx_isolation;
+        复制代码输出数据当前状态
+        --返回最近一次死锁场景，等等信息
+        SHOW ENGINE INNODB STATUS ;
+        复制代码可用于排查死锁问题，锁定行数等问题
+        查询数据库连接信息
+        select * from information_schema.PROCESSLIST
+        复制代码查询事务信息
+        --观察事务启动时间，判断是否为最近的创建的
+        select * from information_schema.INNODB_TRX;
+        复制代码查询数据库锁等待信息
+        --如果存在数据表示当前存在所等待情况
+        select * from information_schema.INNODB_LOCK_WAITS;
+        复制代码手动杀掉某个进程
+        --来源于select * from information_schema.INNODB_TRX;
+        kill trx_mysql_thread_id; 
+        复制代码数据库客户端连接ip统计
+        --用户判断客户端连接数问题
+        SELECT
+        substr(host, 1, instr(host, ':') - 1),
+        count(*)
+        FROM information_schema.processlist
+        WHERE command <> 'Binlog Dump'
+        GROUP BY substr(host, 1, instr(host, ':') - 1)
+        ORDER BY count(*) DESC;
 
-180.redis 有哪些功能？
+        查询数据库指定连接的当前执行sql
+        SELECT *
+        FROM performance_schema.events_statements_current
+        WHERE THREAD_ID IN (SELECT THREAD_ID
+                            FROM performance_schema.threads
+                            WHERE PROCESSLIST_ID = 1333192);
+        复制代码查询锁等待的前后事物和客户端调用的简单sql
+        SELECT
+        '程序等待获取锁' name,
+        t1.requesting_trx_id,
+        p1.HOST,
+        p1.DB,
+        p1.INFO,
+        t4.trx_mysql_thread_id,
+        t4.trx_state,
+        t4.trx_started,
+        t1.requested_lock_id,
+        t2.lock_mode  req_lockmode,
+        t2.lock_type  req_locktype,
+        t2.lock_table req_locktable,
+        t2.lock_index req_lockindex,
+        #   t2.lock_page  req_lockpage,
+        #   t2.lock_rec   req_lockrec,
+        t2.lock_data  req_lockdata,
+        '程序hold事务不释放' name,
+        t1.blocking_trx_id,
+        t5.trx_mysql_thread_id,
+        p1.HOST,
+        p1.DB,
+        p1.INFO,
+        t5.trx_state,
+        t5.trx_started,
+        t1.blocking_lock_id,
+        t3.lock_mode  blocking_lockmode,
+        t3.lock_type  blocking_locktype,
+        t3.lock_table blocking_locktable,
+        t3.lock_index blocking_lockindex,
+        #   t3.lock_page  blocking_lockpage,
+        #   t3.lock_rec   blocking_lockrec,
+        t3.lock_data  blocking_lockdata
+        FROM information_schema.INNODB_LOCK_WAITS t1
+        LEFT JOIN information_schema.INNODB_LOCKS t2
+            ON (t1.requesting_trx_id = t2.lock_trx_id)
+        LEFT JOIN information_schema.INNODB_LOCKS t3
+            ON (t1.blocking_trx_id = t3.lock_trx_id)
+        LEFT JOIN information_schema.INNODB_TRX t4
+            ON (t4.trx_id = t1.requesting_trx_id)
+        LEFT JOIN information_schema.INNODB_TRX t5
+            ON (t5.trx_id = t1.blocking_trx_id)
+        LEFT JOIN information_schema.processlist p1
+            ON (p1.id = t4.trx_mysql_thread_id)
+        LEFT JOIN information_schema.processlist p2
+            ON (p1.id = t5.trx_mysql_thread_id);
+        复制代码数据库客户端连接简介
+        SELECT
+        p.id,
+        p.user,
+        p.host,
+        p.db,
+        p.state,
+        p.info,
+        #   t.trx_id,
+        #   t.trx_state,
+        #   t.trx_mysql_thread_id,
+        #   t.trx_query,
+        #   t.trx_ad,
+        t.*
+        FROM information_schema.processlist p
+        LEFT JOIN information_schema.INNODB_TRX t
+        ON (p.id = t.trx_mysql_thread_id) where p.DB='test';
 
-181.redis 和 memecache 有什么区别？
+178. 如何做 mysql 的性能优化？
 
-182.redis 为什么是单线程的？
+    - 监控sql性能，锁定影响效率的sql
+    - 执行计划，查看索引命中
+    - 查看锁状态
 
-183.什么是缓存穿透？怎么解决？
+## 十八、Redis
 
-184.redis 支持的数据类型有哪些？
+179. redis 是什么？都有哪些使用场景？
 
-185.redis 支持的 java 客户端都有哪些？
+    - redis存储时一个内存数据库，C语言写成，支持多种数据结构，支持单点部署和集群部署，有数据持久化措施
 
-186.jedis 和 redisson 有哪些区别？
+180. redis 有哪些功能？
+
+181. redis 和 memecache 有什么区别？
+
+    - memecache 把数据全部存在内存之中，断电后会挂掉，数据不能超过内存大小，redis有部份存在硬盘上，这样能保证数据的持久性。
+    - redis数据支持类型比memecache要多
+    - redis仅支持linux部署
+
+182. redis 为什么是单线程的？
+
+    - CPU不是redis存储的瓶颈，网络带宽和内存带宽
+    - 采用epoll多路复用，单线程避免了线程上下文切换等重量级操作
+
+183. 什么是缓存穿透？怎么解决？
+
+    - 大量请求未命中缓存导致降级到数据库查找
+    - 对所有可能查询的参数以hash形式存储，在控制层先进行校验，不符合则丢弃
+
+184. redis 支持的数据类型有哪些？
+
+    - string,set,list,hash,zset
+
+185. redis 支持的 java 客户端都有哪些？
+
+    - Redisson,Jedis，lettuce等等，官方推荐使用Redisson。
+
+186. jedis 和 redisson 有哪些区别？
 
 187.怎么保证缓存和数据库数据的一致性？
 
