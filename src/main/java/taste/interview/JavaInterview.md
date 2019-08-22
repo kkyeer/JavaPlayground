@@ -1048,19 +1048,53 @@
     - Serial
     - Serial Old
     - Par New
-    - Parrellel Scavenge
+    - Parallel Scavenge
     - Parallel Old
     - CMS
     - G1
 
 204. 详细介绍一下 CMS 垃圾回收器？
 
+    - CMS是老年代和永久代垃圾回收器，不收集年轻代
+    - CMS是预处理垃圾回收器，需要在old内存用尽前开始GC，默认阈值92%，可调整
+    - 只能配合Parallel New或者Serial垃圾回收器来进行新生代回收
+
 205. 新生代垃圾回收器和老生代垃圾回收器都有哪些？有什么区别？
+
+    - 新生代：Serial,Par New,Parallel Scavenge
+    - 老生代：Serial Old，Parallel Old,CMS,
 
 206. 简述分代垃圾回收器是怎么工作的？
 
+    - 堆内存分为Eden、Survivor、Tenured/Old区，前两者叫新生代，最后叫老生代
+    - Eden：Survior一般是1：8，Survior一般有两个
+    - 大部分对象在Eden区就被回收，Eden区经过N次GC仍旧未回收的对象放入Survivor区
+    - Eden满了或达到一定比例(CMS)后会触发Minor GC
+    - 对象第一次存活会从Eden到Survivor1，第二次存活会从Survivor1到Survivor2
+    - 对象存活次数达到阈值（默认15），会存入老生代
+    - Old区达到一定大小，触发Major GC，清理老生代
+    - Old区满了，触发Full GC
+    - 对象大小达到阈值的，会直接放入老生代
+
 207. 说一下 jvm 调优的工具？
 
-    - fly record
+    - jdk自带的jconsole
+    - jdk自带的VisualVM
+    - 第三方MAT:内存dump文件分析工具
+    - GChisto
 
 208. 常用的 jvm 调优的参数都有哪些？
+
+    –verbose:gc在虚拟机发生内存回收时在输出设备显示信息
+    -Xloggc:filename把GC相关日志信息记录到文件以便分析
+    -XX:-HeapDumpOnOutOfMemoryError当首次遭遇OOM时导出此时堆中相关信息
+    -XX:OnError="<cmdargs>;<cmd args>" 出现致命ERROR之后运行自定义命令
+    -XX:-PrintClassHistogram遇到Ctrl-Break后打印类实例的柱状信息，与jmap -histo功能相同
+    -XX:-PrintConcurrentLocks遇到Ctrl-Break后打印并发锁的相关信息，与jstack -l功能相同
+    -XX:-PrintGC每次GC时打印相关信息
+    -XX:-PrintGCDetails每次GC时打印详细信息
+    -XX:-PrintGCTimeStamps打印每次GC的时间戳
+    -XX:+PrintGCApplicationStoppedTime打印垃圾回收期间程序暂停的时间
+    -XX:+PrintHeapAtGC打印GC前后的详细堆栈信息
+    -XX:+PrintTenuringDistribution查看每次minor GC后新的存活周期的阈值,即在年轻代survivor中的复制次数.
+    -XX:-TraceClassLoading跟踪类的加载信息
