@@ -559,6 +559,7 @@
 102. @RequestMapping 的作用是什么？
 
     指定URL的配置
+
 103. @Autowired 的作用是什么？
 
     自动注入
@@ -1098,3 +1099,8 @@
     -XX:+PrintHeapAtGC打印GC前后的详细堆栈信息
     -XX:+PrintTenuringDistribution查看每次minor GC后新的存活周期的阈值,即在年轻代survivor中的复制次数.
     -XX:-TraceClassLoading跟踪类的加载信息
+
+- 双亲委派模型的优点
+- Spring AOP的原理
+- 消息队列
+- Collections类的排序算法
