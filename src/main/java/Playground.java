@@ -1,3 +1,5 @@
+import java.nio.charset.Charset;
+
 /**
  * @Author: kkyeer
  * @Description: 代码操场随便玩
@@ -7,13 +9,11 @@
 
 public class Playground {
     public static void main(String[] args) {
-        ListNode result1 = new ListNode(1);
-        result1.next = new ListNode(2);
-        result1.next.next = new ListNode(3);
-        ListNode result2 = new ListNode(7);
-        result2.next = new ListNode(8);
-        result2.next.next = new ListNode(3);
-        addTwoNumbers(result1, result2);
+        String s = "中文";
+        System.out.println(s.length());
+        System.out.println(s.getBytes().length);
+        System.out.println(s.getBytes(Charset.forName("UTF8")).length);
+        System.out.println(s.getBytes(Charset.forName("GBK")).length);
     }
     private static class ListNode{
         int val;
