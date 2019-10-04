@@ -32,7 +32,7 @@ class TasteDatagramChannelClient {
                             datagramChannel.read(byteBuffer);
                             byteBuffer.flip();
                             System.out.print(Thread.currentThread().getName()+" received: ");
-                            Util.printBuffer(byteBuffer);
+                            NioUtil.printBuffer(byteBuffer);
                         } catch (IOException e) {
                             System.out.println("exception");
                             e.printStackTrace();

@@ -17,6 +17,6 @@ class TastePipeChannel {
         ByteBuffer dest = ByteBuffer.allocate(10);
         pipe.source().read(dest);
         dest.rewind();
-        Util.printBuffer(dest);
+        NioUtil.printBuffer(dest);
     }
 }

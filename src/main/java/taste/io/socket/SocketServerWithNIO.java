@@ -1,23 +1,12 @@
 package taste.io.socket;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executors;
 
 /**
  * @Author: kkyeer
@@ -26,85 +15,47 @@ import java.util.concurrent.TimeUnit;
  * @Modified By:
  */
 class SocketServerWithNIO implements SocketServer{
+    private static final ExecutorService backgroundService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
     @Override
     public void start() {
-        System.out.println("Server start ......");
         try {
-            ServerSocket serverSocket = new ServerSocket(PORT);
-            ExecutorService ioThreadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0, TimeUnit.NANOSECONDS, new SynchronousQueue<>());
-            ioThreadPool.submit(
-                    () -> {
-                        try {
-                            Selector selector = Selector.open();
-                            ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-                            serverSocketChannel.bind(new InetSocketAddress(InetAddress.getLocalHost(), PORT));
-                            serverSocketChannel.configureBlocking(false);
-                            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-                            while (true) {
-                                selector.select();
-                                Set<SelectionKey> selectionKeySet = selector.keys();
-                                Iterator<SelectionKey> iterator = selectionKeySet.iterator();
-                                while (iterator.hasNext()) {
-                                    SelectionKey selectionKey = iterator.next();
-                                    SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-                                    for (String serverMessage : SERVER_MESSAGES) {
-
-                                    }
-                                }
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-            );
+            ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+            serverSocketChannel.bind(new InetSocketAddress(PORT));
+            serverSocketChannel.configureBlocking(false);
+            Selector selector = Selector.open();
+            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
             while (true) {
-                Socket socket = serverSocket.accept();
-                System.out.println("Got a connection from client");
-                PrintWriter echoWriter = new PrintWriter(socket.getOutputStream());
-                // 读线程
-                ioThreadPool.submit(
-                        () -> {
-                            try {
-                                // 对于客户端发送过来的信息，发送已读回执
-                                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                                String buf;
-                                while ((buf = bufferedReader.readLine()) != null) {
-                                    System.out.println("received:[" + buf + "]");
-                                    echoWriter.println("Server received from Client:[" + buf + "]");
-                                    echoWriter.flush();
-                                }
-                            } catch (IOException e) {
-//                                e.printStackTrace();
-                            } finally {
-                                try {
-                                    socket.close();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
-                // 写线程
-                ioThreadPool.submit(
-                        () -> {
-                            // 发送信息：["消息1","消息2","消息3"]，间隔1秒
-                            for (String serverMessage : SERVER_MESSAGES) {
-                                System.out.println("Pushing message:" + serverMessage);
-                                echoWriter.println(serverMessage);
-                                echoWriter.flush();
-                                try {
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
+                int count = selector.select();
+                if (count == 0) {
+                    continue;
+                }
+                Set<SelectionKey> selectionKeySet = selector.selectedKeys();
+                Iterator<SelectionKey> iterator = selectionKeySet.iterator();
+                while (iterator.hasNext()) {
+                    SelectionKey selectionKey = iterator.next();
+                    if (selectionKey.isAcceptable()) {
+                        ServerSocketChannel originalChannel = (ServerSocketChannel) selectionKey.channel();
+                        SocketChannel socketChannel = originalChannel.accept();
+                        socketChannel.configureBlocking(false);
+                        socketChannel.register(selector, SelectionKey.OP_READ + SelectionKey.OP_WRITE);
+                    }
+                    if (selectionKey.isReadable()&&selectionKey.isWritable()) {
+                        SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+                        read(socketChannel);
+                        write(socketChannel);
+                        socketChannel.close();
+                        selectionKey.cancel();
+                    }
+                    iterator.remove();
+                }
             }
         } catch (IOException e) {
-//            e.printStackTrace();
-        } finally {
+            e.printStackTrace();
         }
 
+    }
+
+    public static void main(String[] args) {
+        new SocketServerWithNIO().start();
     }
 }

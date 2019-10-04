@@ -1,9 +1,12 @@
 package taste.io.socket;
 
+import taste.io.nio.NioUtil;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Random;
 
 /**
  * @Author: kkyeer
@@ -14,8 +17,16 @@ import java.nio.channels.SocketChannel;
 public class TestClient {
     public static void main(String[] args) throws IOException {
         SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(12315));
-        ByteBuffer byteBuffer = ByteBuffer.wrap("hhhhhh  elllllooooooo".getBytes());
-        byteBuffer.rewind();
+        Random random = new Random();
+        String content = "index"+random.nextInt(100);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(content.getBytes());
         socketChannel.write(byteBuffer);
+        System.out.println("SENT:" + content);
+        byteBuffer.clear();
+        while (socketChannel.read(byteBuffer) > 0) {
+            byteBuffer.flip();
+            NioUtil.printBuffer(byteBuffer);
+            byteBuffer.clear();
+        }
     }
 }

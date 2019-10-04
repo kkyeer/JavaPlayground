@@ -8,12 +8,12 @@ import java.nio.ByteBuffer;
  * @Date:Created in 18:49 10/3
  * @Modified By:
  */
-class Util {
+public class NioUtil {
     /**
      * 打印Buffer内容，从position到limit
      * @param buffer target buffer
      */
-    static void printBuffer(ByteBuffer buffer) {
+    public static void printBuffer(ByteBuffer buffer) {
         while (buffer.hasRemaining()) {
             System.out.print((char)buffer.get());
         }

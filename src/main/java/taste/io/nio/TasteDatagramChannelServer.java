@@ -26,7 +26,7 @@ class TasteDatagramChannelServer {
             SocketAddress remoteAddress = datagramChannel.receive(readBuffer);
             readBuffer.flip();
             System.out.print("Receive from client:");
-            Util.printBuffer(readBuffer);
+            NioUtil.printBuffer(readBuffer);
             Timer timer = new Timer();
             timer.schedule(
                     new TimerTask() {
