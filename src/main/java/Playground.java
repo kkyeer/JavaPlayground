@@ -1,4 +1,4 @@
-import java.nio.charset.Charset;
+import java.util.ArrayList;
 
 /**
  * @Author: kkyeer
@@ -9,11 +9,11 @@ import java.nio.charset.Charset;
 
 public class Playground {
     public static void main(String[] args) {
-        String s = "中文";
-        System.out.println(s.length());
-        System.out.println(s.getBytes().length);
-        System.out.println(s.getBytes(Charset.forName("UTF8")).length);
-        System.out.println(s.getBytes(Charset.forName("GBK")).length);
+        ArrayList<String> original = new ArrayList<>();
+        original.add("aa");
+        original.add("bb");
+        String[] result = (String[]) original.toArray();
+        result = original.toArray(new String[0]);
     }
     private static class ListNode{
         int val;

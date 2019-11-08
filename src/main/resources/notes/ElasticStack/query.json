@@ -1,0 +1,14 @@
+{
+    "query": {
+        "bool": {
+            "filter": {
+                "range": {
+                    "price":{
+                        "gt":20,
+                        "lt":40
+                    }
+                }
+            }
+        }
+    }
+}

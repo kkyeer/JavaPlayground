@@ -1,0 +1,94 @@
+{
+    "size": 1,
+    "query": {
+        "bool": {
+            "must_not": [
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "srcAddress": "-"
+                                }
+                            },
+                            {
+                                "query_string": {
+                                    "query": "NOT srcAddress:[* TO *]",
+                                    "analyze_wildcard": true
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "destAddress": "-"
+                                }
+                            },
+                            {
+                                "query_string": {
+                                    "query": "NOT destAddress:[* TO *]",
+                                    "analyze_wildcard": true
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "destHostName": "-"
+                                }
+                            },
+                            {
+                                "query_string": {
+                                    "query": "NOT destHostName:[* TO *]",
+                                    "analyze_wildcard": true
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
+            "filter": {
+                "range": {
+                    "startTime": {
+                        "gte": 1570517998000,
+                        "lte": 1570604398000
+                    }
+                },
+                "bool":{
+                    "should":[
+                        {
+                            "should": [
+                                {
+                                    "match": {
+                                        "destHostName": "-"
+                                    }
+                                },
+                                {
+                                    "query_string": {
+                                        "query": "NOT destHostName:[* TO *]",
+                                        "analyze_wildcard": true
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "script_fields":{
+        "target_identifier":{
+            "script":{
+                "source":"Pattern ipPattern = /^((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3}$/; return  doc.destAddress=='-'||doc.destAddress==null?doc.destHostName==~ipPattern?doc.destHostName:'-':doc.destAddress;"
+            }
+        }
+    }
+}
