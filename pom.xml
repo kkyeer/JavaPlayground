@@ -81,8 +81,12 @@
 <!--            <artifactId>httpclient</artifactId>-->
 <!--            <version>4.5.9</version>-->
 <!--        </dependency>-->
-
-
+    
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>1.4.0</version>
+        </dependency>
 
     </dependencies>
     <build>
@@ -92,6 +96,7 @@
                 <includes>
                     <include>**/*.txt</include>
                     <include>**/*.xml</include>
+                    <include>**/*.conf</include>
                 </includes>
             </resource>
         </resources>

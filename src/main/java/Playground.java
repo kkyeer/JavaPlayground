@@ -1,8 +1,3 @@
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.util.Arrays;
-
 /**
  * @Author: kkyeer
  * @Description: 代码操场随便玩
@@ -11,7 +6,7 @@ import java.util.Arrays;
  */
 
 public class Playground {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
     }
 }
