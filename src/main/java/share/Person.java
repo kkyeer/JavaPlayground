@@ -5,8 +5,8 @@ package share;
  * @date 2018/10/6 20:09
  */
 public class Person {
-    int age;
-    String name;
+    private int age;
+    private String name;
 
     public int getAge() {
         return age;
