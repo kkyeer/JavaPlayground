@@ -16,7 +16,7 @@ import java.util.concurrent.Future;
  * @Date:Created in 23:50 12-31
  * @Modified By:
  */
-public class BasicProducer {
+class BasicProducer {
     private static final String SERVER = "192.168.137.189:9092";
     public static void main(String[] args) {
 //        basicProduce();
