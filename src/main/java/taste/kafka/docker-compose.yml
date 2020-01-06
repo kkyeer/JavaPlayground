@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
   kafka1:
     image: wurstmeister/kafka
@@ -6,7 +6,7 @@ services:
       - 0.0.0.0:9092:9092
     environment:
       KAFKA_ADVERTISED_HOST_NAME: 192.168.137.189
-      KAFKA_ZOOKEEPER_CONNECT: 192.168.137.189:2181
+      KAFKA_ZOOKEEPER_CONNECT: zk:2181
       KAFKA_BROKER_ID: 1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -17,7 +17,7 @@ services:
       - 0.0.0.0:9093:9092
     environment:
       KAFKA_ADVERTISED_HOST_NAME: 192.168.137.189
-      KAFKA_ZOOKEEPER_CONNECT: 192.168.137.189:2181
+      KAFKA_ZOOKEEPER_CONNECT: zk:2181
       KAFKA_BROKER_ID: 2
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -27,8 +27,9 @@ services:
       - 0.0.0.0:9094:9092
     environment:
       KAFKA_ADVERTISED_HOST_NAME: 192.168.137.189
-      KAFKA_ZOOKEEPER_CONNECT: 192.168.137.189:2181
+      KAFKA_ZOOKEEPER_CONNECT: zk:2181
       KAFKA_BROKER_ID: 3
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    
+  zk:
+    image: zookeeper
