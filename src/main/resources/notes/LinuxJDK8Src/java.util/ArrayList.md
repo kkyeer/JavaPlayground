@@ -1,4 +1,4 @@
-# Linux_JDK_8源码：ArrayList\<E>
+# Linux_JDK_8源码：java.util.ArrayList\<E>
 
 ## 1. 线程安全
 
