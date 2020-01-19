@@ -1,99 +1,118 @@
-# java.util.HashMap<K,V> 源码解析-增删改
+# java.util.HashMap<K,V> 源码解析-增删与扩容
 
 ## 1. 构造方法
 
 public HashMap(int initialCapacity, float loadFactor)
 
-- initialCapacity:初始容量，传入时，threshold(下次扩容阈值)为tableSizeFor(initialCapacity)即向上找最接近的2的整数次幂，不传入默认为0，在第一次put元素时，table为空不够用导致resize()，resise后capacity为默认值16，threshold为16*loadFactor;
-- loadFactor:扩容因子
+- initialCapacity:初始容量，传入时，threshold(下次扩容阈值)为tableSizeFor(initialCapacity)即向上找最接近的2的整数次幂，不传入默认为0，在这种情况下，在第一次put元素时，table为空不够用导致resize()，resise后capacity为默认值16，threshold为16*loadFactor;
+- loadFactor:负载因子，当table内存储数据达到此比例后，经验推断hash碰撞的可能性会大大提高，因此需要进行扩容，默认0.75，此属性为protect变量，修改需要新写HashMap的子类
 
-## 2. 增删改方法
+## 2. 增删改
 
-## 2.1. 增
+### 2.1. 增
 
-实际调用下面的方法来进行新增操作：
+实际调用putVal方法来进行新增操作：
 
-```java
-final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
-                   boolean evict) {
-        Node<K,V>[] tab; Node<K,V> p; int n, i;
-        if ((tab = table) == null || (n = tab.length) == 0)
-            n = (tab = resize()).length;
-        if ((p = tab[i = (n - 1) & hash]) == null)
-            tab[i] = newNode(hash, key, value, null);
-        else {
-            Node<K,V> e; K k;
-            if (p.hash == hash &&
-                ((k = p.key) == key || (key != null && key.equals(k))))
-                e = p;
-            else if (p instanceof TreeNode)
-                e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
-            else {
-                for (int binCount = 0; ; ++binCount) {
-                    if ((e = p.next) == null) {
-                        p.next = newNode(hash, key, value, null);
-                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
-                            treeifyBin(tab, hash);
-                        break;
-                    }
-                    if (e.hash == hash &&
-                        ((k = e.key) == key || (key != null && key.equals(k))))
-                        break;
-                    p = e;
-                }
-            }
-            if (e != null) { // existing mapping for key
-                V oldValue = e.value;
-                if (!onlyIfAbsent || oldValue == null)
-                    e.value = value;
-                afterNodeAccess(e);
-                return oldValue;
-            }
-        }
-        ++modCount;
-        if (++size > threshold)
-            resize();
-        afterNodeInsertion(evict);
-        return null;
-    }
+#### 2.1.1 流程图
+
+```flow
+st=>start: 开始
+e=>end: 结束
+isEmptyTable=>condition: 内部table为空?
+resizeTable=>operation: 初始化内部table(注释1)
+isEmptyPos=>condition: 目标位置为空?
+newNode=>operation: 新建一个Node对象
+putIntoPos=>operation: 放入目标位置
+isTreeNode=>condition: 目标位置是TreeNode?
+isKeyExisted=>condition: key已经存在?
+handleKeyExisted=>operation: 处理key存在的情况(注释2)
+handleKeyNotExist=>operation: 处理key不存在的情况(注释3)
+addToTreeNode=>operation: 放入树中
+linkToNodeEnd=>operation: 新建Node连接到链表末尾
+isNodeSizeTooLarge=>condition: 链表大小超限?(注释4)
+treeify=>operation: 将当前Node转为树
+
+st->isEmptyTable
+isEmptyTable(yes)->resizeTable->isEmptyPos
+isEmptyPos(yes)->newNode->newNode->putIntoPos->handleKeyNotExist->e
+isEmptyPos(no)->isTreeNode
+isTreeNode(yes)->addToTreeNode->isKeyExisted
+isTreeNode(no)->linkToNodeEnd(right)->isNodeSizeTooLarge
+isNodeSizeTooLarge(no)->isKeyExisted
+isNodeSizeTooLarge(yes)->treeify->isKeyExisted
+isKeyExisted(yes)->handleKeyExisted
+isKeyExisted(no)->handleKeyNotExist
+handleKeyExisted->e
 ```
 
-### 2.1.2 过程
+1. 内部table的初始化：调用resize方法来进行table初始化及相关threshold计算
+2. key已存在：返回值为原value
+3. key不存在：返回值为null
+4. Node转换成TreeNode：单个Node链长大于TREEIFY_THRESHOLD（默认为8）时进行尝试，当table大于MIN_TREEIFY_CAPACITY（默认64）时转换为树，否则仅仅进行扩容
 
-- 1)如果没初始化，调用resize方法
-- 2)k-v对的默认位置为index=(capacity-1)&hash
-- 3)若index的位置没有值（即不冲突），则将k-v对包裹进Node对象放入，Node对象的next为null，返回null
-- 4)如果key.equals(原来的key),证明是值的覆盖，返回原来的值，在!onlyIfAbsent为真时，替换值
-- 2)如果!key.equals(原来的key),证明是产生hash冲突,如下
+### 2.2 删
 
-### 2.1.3 hash冲突的处理
+删除的过程跟put大同小异，区别只在于，如果删除一个TreeNode，可能会造成树转化为BinNode，阈值根据树的形状为2或6，具体见红黑树部分
 
-#### 2.1.3.1 原节点已经是TreeNode，则调用TreeNode对象的putVal方法
+## 3. 扩容
 
- ```java
- e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value)
- ```
+扩容一共分为两步，第一步确定新的table大小和下次扩容阈值，第二步，重新将现有的table中的所有node存入新table(中间可能涉及TreeNode转链表Node)
 
- 详见TreeNode描述
+### 3.1 计算table大小和下次扩容阈值
 
-#### 2)原节点不是TreeNode,即当前还是链状存储，则：
+```flow
+st=>start: 开始
+e=>end: 结束
+tableEmpty=>condition: 内部table为空?
+twiceCap=>operation: table大小翻倍：cap<=1;
+twiceThr=>operation: 扩容阈值翻倍: thr<=1;
+thrIsZero=>condition: 当前扩容阈值为0?
+defaultCap=>operation: table大小设为初始值(默认16);
+defaultThr=>operation: 扩容阈值=cap*loadFactor(默认0.75);
+capSetAsOldThr=>operation: cap=当前扩容阈值
+thrMultiFactor=>operation: 扩容阈值=cap*loadFactor
 
-  1. 遍历此链，若有key与传入hash相等或equal的，则替换值，返回原值
-  2. 若不是替换的情况，则将新K-V对包裹到Node里，并挂到最后一个节点后，并 判断当前链长是否>=TREEIFY_THRESHOLD - 1(8-1=7),若是则将此处的节点树化treeifyBin(tab, hash)
+st->tableEmpty
+tableEmpty(yes)->thrIsZero->e
+thrIsZero(yes)->defaultCap->defaultThr->e
+thrIsZero(no)->capSetAsOldThr->thrMultiFactor->e
+tableEmpty(no)->twiceCap->twiceThr->e
+```
 
-***
+### 3.2 原table中的Node元素拷贝到新table
 
-## 3.treeifyBin方法，将节点Node链转为红黑树
+按新的容量初始化新table后，遍历原table的每一个Node，对于非null的Node，根据其Node类型，执行下列操作来复制到新的table
 
-- final void treeifyBin(Node<K,V>[] tab, int hash)
-- 过程如下：
-1. 当HashMap内部的table的长度小于MIN_TREEIFY_CAPACITY时，仅仅resize一下
-2. 当HashMap内部的table长度大于等于MIN_TREEIFY_CAPACITY时,先遍历当前hash一致的链，组成双向链表，链表内存储的是TreeNode实例，再调用头部TreeNode的treeify(tab)方法，生成红黑树，具体参考TreeNode的treeify方法
+#### 3.2.1 普通链表Node的复制
 
-***
+链表中的元素仅会发生下面两种情况:
 
-## 3.final Node<K,V>[] resize()
+1. 向右移动{原table大小(oldCap)}
 
-- 重新计算Map中table的尺寸
-- table为null的时候，根据initialCapacity分配空间，table不为null的时候，每个Node里的元素要么不动，要么平移2^n^个位置
-- 返回resize后的Node数组
+  ```txt
+  hash                   0000000010101
+  &cap-1                 0000000001111
+  old_pos                0000000000101
+
+  hash                   0000000010101
+  &newcap-1              0000000011111
+  new_pos                0000000010101 => 右移了16(等于oldCap)位
+  ```
+
+2. 原地不动
+
+  ```txt
+  hash                   0000000001101
+  &cap-1                 0000000001111
+  old_pos                0000000001101
+
+  hash                   0000000001101
+  &newcap-1              0000000011111
+  new_pos                0000000001101 => 位置不动
+  ```
+
+分别将上述两种Node按原顺序串成新链表，存入新table的对应位置
+
+#### 3.2.2 TreeNode的复制
+
+通过调用 ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);方法放入新的两个位置
