@@ -1,5 +1,7 @@
 # java.util.HashMap<K,V> 源码解析-增删与扩容
 
+[toc]
+
 ## 1. 构造方法
 
 public HashMap(int initialCapacity, float loadFactor)
@@ -15,7 +17,7 @@ public HashMap(int initialCapacity, float loadFactor)
 
 #### 2.1.1 流程图
 
-```flow
+```flowchart.js
 st=>start: 开始
 e=>end: 结束
 isEmptyTable=>condition: 内部table为空?
@@ -60,7 +62,7 @@ handleKeyExisted->e
 
 ### 3.1 计算table大小和下次扩容阈值
 
-```flow
+```flowchart.js
 st=>start: 开始
 e=>end: 结束
 tableEmpty=>condition: 内部table为空?
