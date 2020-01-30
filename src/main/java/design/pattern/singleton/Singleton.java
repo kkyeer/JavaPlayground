@@ -8,5 +8,5 @@ import java.io.Serializable;
  * @Date:Created in 11:42 2019/6/24
  * @Modified By:
  */
-interface Singleton extends Serializable {
+interface Singleton extends Serializable,Cloneable {
 }

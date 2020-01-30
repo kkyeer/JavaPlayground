@@ -10,7 +10,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @Author: kkyeer
@@ -19,19 +18,32 @@ import java.util.concurrent.atomic.AtomicReference;
  * @Modified By:
  */
 class TestCase {
-    public static void main(String[] args){
+    public static void main(String[] args) throws CloneNotSupportedException {
         // 测试调用静态方法
 //        testNormalInvoke();
         // 测试序列化与反序列化
         testSerialization();
         // 测试反射
         testReflection();
+        // 测试clone方法
+//        testClone();
+    }
+
+    /**
+     * 测试各种单例的实现中，调用clone方法能否破坏单例的唯一性
+     */
+    private static void testClone() throws CloneNotSupportedException {
+        LazyLoadWithInnerClass instance1 = LazyLoadWithInnerClass.getInstance();
+        Singleton instance2 = (Singleton) instance1.clone();
+        System.out.println(instance1.hashCode());
+        System.out.println(instance2.hashCode());
+        System.out.println(instance1==instance2);
     }
 
     /**
      * 由于构造器私有，所以测试调用静态方法的线程安全性
      */
-    private static void testNormalInvoke() {
+    private static void testThreadSafety() {
         final int TEST_THREAD_COUNT = Runtime.getRuntime().availableProcessors()*300;
         System.out.println("TESTING WITH "+TEST_THREAD_COUNT+" THREADS");
         CyclicBarrier cyclicBarrier = new CyclicBarrier(TEST_THREAD_COUNT + 1);
@@ -81,14 +93,14 @@ class TestCase {
     }
 
     /**
-     * 测试反序列化过程中是否仍旧保持单例不变，结果为，只有枚举模式才可以
+     * 测试反序列化过程中是否仍旧保持单例不变，结果显示只有枚举模式才可以
      */
     private static void testSerialization(){
-//                            Singleton created = PlainNotSafe.getInstance();
-//                            Singleton created = LoadAhead.getInstance();
-//                            Singleton created = LazyLoadWithOneSynchronization.getInstance();
-//                            Singleton created = LazyLoadWithDoubleCheckSynchronization.getInstance();
-//                            Singleton created = LazyLoadWithInnerClass.getInstance();
+//        Singleton created = PlainNotSafe.getInstance();
+//        Singleton created = LoadAhead.getInstance();
+//        Singleton created = LazyLoadWithOneSynchronization.getInstance();
+//        Singleton created = LazyLoadWithDoubleCheckSynchronization.getInstance();
+//        Singleton created = LazyLoadWithInnerClass.getInstance();
         Singleton created = LazyLoadWithEnum.INSTANCE.getInstance();
         System.out.println(created.hashCode());
         File testFile = new File("obj.txt");
@@ -101,7 +113,7 @@ class TestCase {
             Singleton dematerializedObject = (Singleton) objectInputStream.readObject();
             objectInputStream.close();
             System.out.println(dematerializedObject.hashCode());
-            Assertions.assertTrue(dematerializedObject == created);
+            Assertions.assertTrue(dematerializedObject == created,"破坏了单例唯一性");
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         } finally {
@@ -110,24 +122,24 @@ class TestCase {
     }
 
     /**
-     * 测试使用反射是否破坏单例
+     * 测试使用反射，即手动调用构造器的newInstance方法是否破坏单例
      */
     private static void testReflection()  {
         try {
-            Singleton created = LazyLoadWithDoubleCheckSynchronization.getInstance();
-            Constructor<LazyLoadWithDoubleCheckSynchronization> constructor = LazyLoadWithDoubleCheckSynchronization.class.getDeclaredConstructor();
-            constructor.setAccessible(true);
-            Singleton instanceWithReflection = constructor.newInstance();
-
-//            Singleton created = LazyLoadWithEnum.INSTANCE.getInstance();
-//            Constructor<LazyLoadWithEnum> constructor = LazyLoadWithEnum.class.getDeclaredConstructor();
+//            Singleton created = LazyLoadWithDoubleCheckSynchronization.getInstance();
+//            Constructor<LazyLoadWithDoubleCheckSynchronization> constructor = LazyLoadWithDoubleCheckSynchronization.class.getDeclaredConstructor();
 //            constructor.setAccessible(true);
 //            Singleton instanceWithReflection = constructor.newInstance();
+
+            Singleton created = LazyLoadWithEnum.INSTANCE.getInstance();
+            Constructor<LazyLoadWithEnum> constructor = LazyLoadWithEnum.class.getDeclaredConstructor(String.class, int.class);
+            constructor.setAccessible(true);
+            Singleton instanceWithReflection = constructor.newInstance();
 
 
             System.out.println(created.hashCode());
             System.out.println(instanceWithReflection.hashCode());
-            Assertions.assertTrue(instanceWithReflection == created);
+            Assertions.assertTrue(instanceWithReflection == created,"反射破坏单例唯一性");
         } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             e.printStackTrace();
         }

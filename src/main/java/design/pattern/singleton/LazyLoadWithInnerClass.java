@@ -1,6 +1,6 @@
 package design.pattern.singleton;
 
-import sun.security.jca.GetInstance;
+import java.io.Serializable;
 
 /**
  * @Author: kkyeer
@@ -8,8 +8,7 @@ import sun.security.jca.GetInstance;
  * @Date:Created in 14:57 2019/6/24
  * @Modified By:
  */
-class LazyLoadWithInnerClass implements Singleton{
-    private static LazyLoadWithInnerClass instance;
+class LazyLoadWithInnerClass implements Singleton, Serializable {
     private LazyLoadWithInnerClass(){
         try {
             // 耗时的初始化操作
@@ -28,6 +27,15 @@ class LazyLoadWithInnerClass implements Singleton{
      * @return
      */
     public static LazyLoadWithInnerClass getInstance(){
+        return Inner.instance;
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+
+    private Object readResolve(){
         return Inner.instance;
     }
 }

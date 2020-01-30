@@ -17,5 +17,16 @@ public class Assertions {
         }
     }
 
+    /**
+     * 断言是否为真，并在为假时抛出对应错误
+     * @param source 布尔型值
+     * @param errMsg 错误提示信息
+     */
+    public static void assertTrue(boolean source, String errMsg) {
+        if (!source) {
+            throw new AssertionError(errMsg);
+        }
+    }
+
 
 }
