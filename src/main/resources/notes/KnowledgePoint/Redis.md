@@ -1,0 +1,1 @@
+- Redis和memcache有什么区别？Redis为什么比memcache有优势？考虑redis的时候，有没有考虑容量？大概数据量会有多少？
