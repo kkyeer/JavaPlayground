@@ -39,7 +39,7 @@ package leetcode;
  * @Date:Created in  2020-3-4 10:31
  * @Modified By:
  */
-public class OrangesRotting994 {
+public class OrangesRotting_994 {
     public static void main(String[] args) {
         int[][] input = new int[][]{{0,1,1,2},{0,1,1,0},{1,1,2,0}};
         System.out.println(orangesRotting(input));
@@ -56,7 +56,6 @@ public class OrangesRotting994 {
             int[] line = grid[i];
             for (int j = 0; j < line.length; j++) {
                 if (grid[i][j] == 2) {
-                    marks[i][j] = -1;
                     spreadRotting(i - 1, j, marks, grid, 1, 0);
                     spreadRotting(i + 1, j, marks, grid, 1, 1);
                     spreadRotting(i, j - 1, marks, grid, 1, 2);
