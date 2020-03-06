@@ -165,3 +165,4 @@ local.properties
 
 .classpath
 .project
+.settings/
