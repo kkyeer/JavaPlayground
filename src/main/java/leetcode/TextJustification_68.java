@@ -1,4 +1,4 @@
-package taste.leetcode;
+package leetcode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,7 +69,7 @@ import java.util.List;
  * @Date:Created in  2020-1-31 18:17
  * @Modified By:
  */
-public class TextJustification68 {
+public class TextJustification_68 {
     public static void main(String[] args) throws Exception {
         String[] words = new String[]{"What","must","be","acknowledgment","shall","be"};
         int maxWidth = 16;
