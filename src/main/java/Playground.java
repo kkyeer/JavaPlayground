@@ -7,10 +7,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * @Author: kkyeer
@@ -21,7 +19,27 @@ import java.util.concurrent.Future;
 
 public class Playground {
     public static void main(String[] args) throws UnknownHostException, ExecutionException, InterruptedException {
-        sendMsgAsync();
+        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(1);
+        ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, 2, 1000, TimeUnit.MINUTES, queue);
+        executorService.setRejectedExecutionHandler(
+                (command,executor)->{
+                    System.err.println("Rejected");
+                    System.err.println(executor.getCorePoolSize());
+                }
+        );
+        for (int i = 0; i < 5; i++) {
+            executorService.submit(
+                    ()->{
+                        try {
+                            Thread.sleep(1000000);
+                        } catch (InterruptedException e) {
+                            System.err.println("Interrupted");
+                        }
+                    }
+            );
+        }
+        System.out.println("All job submitted");
+        executorService.shutdownNow();
     }
 
     private static void sendMsgAsync(){
