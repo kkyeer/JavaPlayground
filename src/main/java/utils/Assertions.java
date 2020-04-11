@@ -28,5 +28,11 @@ public class Assertions {
         }
     }
 
+    public static void equal(int require, int actual) {
+        if (require != actual) {
+            throw new AssertionError("require:" + require + " , actual:" + actual);
+        }
+    }
+
 
 }
