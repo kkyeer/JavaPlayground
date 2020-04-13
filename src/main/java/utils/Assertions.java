@@ -1,5 +1,7 @@
 package utils;
 
+import java.math.BigDecimal;
+
 /**
  * @Author: kkyeer
  * @Description: 断言工具类
@@ -25,6 +27,20 @@ public class Assertions {
     public static void assertTrue(boolean source, String errMsg) {
         if (!source) {
             throw new AssertionError(errMsg);
+        }
+    }
+
+    public static void equal(int require, int actual) {
+        if (require != actual) {
+            throw new AssertionError("require:" + require + " , actual:" + actual);
+        }
+    }
+
+    public static void equal(double require, double actual) {
+        BigDecimal re = new BigDecimal(require).stripTrailingZeros();
+        BigDecimal ac = new BigDecimal(actual).stripTrailingZeros();
+        if (!re.equals(ac)) {
+            throw new AssertionError("require:" + require + " , actual:" + actual);
         }
     }
 
