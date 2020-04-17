@@ -37,11 +37,6 @@ public class CanJump_55 {
     public boolean canJump(int[] nums) {
         // 问题转化为，是否存在这样一个点,符合以下特征:
         // 1. index<length-1
-输出
-true
-预期结果
-true
-如何创建一个测试用例?
         // 2. 前面所有的点都无法越过它
         // 3. 这个点的跳跃距离为0
         boolean leap = true;
