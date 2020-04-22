@@ -90,10 +90,8 @@ public class RightSideView_199 {
             mark(root.left, level + 1);
         }
 
-        {
-            if (result.length < level + 1) {
-                result = Arrays.copyOf(result, level + 1);
-            }
+        if (result.length < level + 1) {
+            result = Arrays.copyOf(result, level + 1);
         }
         if (result[level] == null) {
             result[level] = root.val;
