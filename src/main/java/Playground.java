@@ -19,27 +19,16 @@ import java.util.concurrent.*;
 
 public class Playground {
     public static void main(String[] args) throws UnknownHostException, ExecutionException, InterruptedException {
-        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(1);
-        ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, 2, 1000, TimeUnit.MINUTES, queue);
-        executorService.setRejectedExecutionHandler(
-                (command,executor)->{
-                    System.err.println("Rejected");
-                    System.err.println(executor.getCorePoolSize());
-                }
-        );
-        for (int i = 0; i < 5; i++) {
-            executorService.submit(
-                    ()->{
-                        try {
-                            Thread.sleep(1000000);
-                        } catch (InterruptedException e) {
-                            System.err.println("Interrupted");
-                        }
-                    }
-            );
-        }
-        System.out.println("All job submitted");
-        executorService.shutdownNow();
+
+    }
+
+    private static void localNetAddress() throws UnknownHostException {
+        // TODO
+        System.out.println(Inet4Address.getLocalHost().getCanonicalHostName());
+        // 获取IP
+        System.out.println(Inet4Address.getLocalHost().getHostAddress());
+        //  TODO
+        System.out.println(Inet4Address.getLocalHost().getHostName());
     }
 
     private static void sendMsgAsync(){
