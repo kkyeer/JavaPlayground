@@ -33,48 +33,95 @@
 
 package leetcode.editor.cn;
 
+import utils.Assertions;
+
 import java.util.Arrays;
 import java.util.List;
 
 public class GrumpyBookstoreOwner1052{
     public static void main(String[] args){
         Solution solution = new GrumpyBookstoreOwner1052().new Solution();
+
         List<Integer> customerInput = Arrays.asList(1,0,1,2,1,1,7,5);
+        List<Integer> grumpyInput = Arrays.asList(0,1,0,1,0,1,0,1);
+        int X = 3;
+        int expected = 16;
         int[] customers = new int[customerInput.size()];
         for (int i = 0; i < customerInput.size(); i++) {
             customers[i] = customerInput.get(i);
         }
-        List<Integer> grumpyInput = Arrays.asList(0, 1, 0, 1, 0, 1, 0, 1);
         int[] grumpy = new int[grumpyInput.size()];
         for (int i = 0; i < grumpy.length; i++) {
             grumpy[i] = grumpyInput.get(i);
         }
-        System.out.println(solution.maxSatisfied(customers, grumpy, 3));
+
+
+        Assertions.assertTrue(expected == solution.maxSatisfied(customers, grumpy, X));
+
+        customerInput = Arrays.asList(3);
+        grumpyInput = Arrays.asList(1);
+        X = 1;
+        expected = 3;
+        customers = new int[customerInput.size()];
+        for (int i = 0; i < customerInput.size(); i++) {
+            customers[i] = customerInput.get(i);
+        }
+        grumpy = new int[grumpyInput.size()];
+        for (int i = 0; i < grumpy.length; i++) {
+            grumpy[i] = grumpyInput.get(i);
+        }
+
+        Assertions.assertTrue(expected == solution.maxSatisfied(customers, grumpy, X));
     }
     
     //leetcode submit region begin(Prohibit modification and deletion)
 class Solution {
     public int maxSatisfied(int[] customers, int[] grumpy, int X) {
-        int maxSupressed = 0;
+        int maxSuppressed = 0;
         int sum =0;
         int length = customers.length;
-        for (int i = 0; i < customers.length; i++) {
-            if (i <= length - X) {
-                int currentSuppressed = 0;
-                for (int j = 0; j < X; j++) {
-                    if (grumpy[i + j] == 1) {
-                        currentSuppressed += customers[i + j];
-                    }
-                }
-                maxSupressed = Math.max(currentSuppressed, maxSupressed);
-            }
-            if (grumpy[i] == 0) {
+        int[] suppressedArray = new int[length];
+        int currentSuppressed = 0;
+//        滑动窗口
+        for (int i = 0; i < length; i++) {
+            if (grumpy[i] == 1) {
+                suppressedArray[i] = customers[i];
+            }else {
                 sum += customers[i];
+                suppressedArray[i] = 0;
             }
+            if (i >= X) {
+                currentSuppressed = currentSuppressed - suppressedArray[i - X] + suppressedArray[i];
+            }else {
+                currentSuppressed = currentSuppressed + suppressedArray[i];
+            }
+            maxSuppressed = Math.max(currentSuppressed, maxSuppressed);
         }
-        return sum + maxSupressed;
+        return sum + maxSuppressed;
 
     }
+
+
+        public int maxSatisfied2(int[] customers, int[] grumpy, int X) {
+            int total = 0;
+            int n = customers.length;
+            for (int i = 0; i < n; i++) {
+                if (grumpy[i] == 0) {
+                    total += customers[i];
+                }
+            }
+            int increase = 0;
+            for (int i = 0; i < X; i++) {
+                increase += customers[i] * grumpy[i];
+            }
+            int maxIncrease = increase;
+            for (int i = X; i < n; i++) {
+                increase = increase - customers[i - X] * grumpy[i - X] + customers[i] * grumpy[i];
+                maxIncrease = Math.max(maxIncrease, increase);
+            }
+            return total + maxIncrease;
+
+        }
 }
 //leetcode submit region end(Prohibit modification and deletion)
 
