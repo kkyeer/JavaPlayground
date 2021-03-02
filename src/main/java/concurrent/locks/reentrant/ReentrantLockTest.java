@@ -2,6 +2,7 @@ package concurrent.locks.reentrant;
 
 import utils.Assertions;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -67,13 +68,40 @@ class ReentrantLockTest {
         lock.unlock();
     }
 
+    /**
+     * 测试多线程可重入
+     * @param lock lock
+     */
+    static void testMultiThread(Lock lock){
+        new Thread(
+                ()->{
+                    lock.lock();
+                    try {
+                        TimeUnit.SECONDS.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    lock.unlock();
+                }
+        ).start();
+        new Thread(
+                ()->{
+                    lock.lock();
+                    lock.unlock();
+                }
+        ).start();
+    }
+
+
+
     public static void test(Class<? extends Lock> lockClass) {
         Lock lock  = null;
         try {
-            lock = lockClass.newInstance();
-            testExclusion(lock);
-            lock = lockClass.newInstance();
-            testReentrancy(lock);
+//            lock = lockClass.newInstance();
+//            testExclusion(lock);
+//            lock = lockClass.newInstance();
+//            testReentrancy(lock);
+            testMultiThread(lockClass.newInstance());
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
