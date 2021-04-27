@@ -4,6 +4,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 
+import java.lang.management.ManagementFactory;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -20,6 +21,16 @@ import java.util.concurrent.*;
 public class Playground {
     public static void main(String[] args) throws UnknownHostException, ExecutionException, InterruptedException {
 
+        System.out.println(Long.toBinaryString(1384076889872744455L>>12));
+    }
+
+    protected static   long getMaxWorkerId(long datacenterId,String pid, long maxWorkerId) {
+        StringBuilder mpid = new StringBuilder();
+        mpid.append(datacenterId);
+        mpid.append(pid);
+        long workerId = (long)(mpid.toString().hashCode() & '\uffff') % (maxWorkerId + 1L);
+        System.out.println(workerId);
+        return workerId;
     }
 
     private static void localNetAddress() throws UnknownHostException {
