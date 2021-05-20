@@ -1,4 +1,4 @@
-package funny.bugs;
+package issue.bugs;
 
 /**
  * @Author: kkyeer

@@ -1,4 +1,4 @@
-package funny;
+package issue;
 
 import java.lang.reflect.Field;
 
