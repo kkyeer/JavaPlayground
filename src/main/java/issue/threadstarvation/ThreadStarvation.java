@@ -15,8 +15,8 @@ public class ThreadStarvation {
         new ThreadStarvation().test();
     }
 
-    private ExecutorService executorService = new ThreadPoolExecutor(10, 10,10, TimeUnit.HOURS,
-            new LinkedBlockingQueue<>(50),Thread::new,
+    private ExecutorService executorService = new ThreadPoolExecutor(10, 10,1, TimeUnit.MINUTES,
+            new LinkedBlockingQueue<>(100),Thread::new,
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     public void test() throws ExecutionException, InterruptedException {
@@ -44,13 +44,16 @@ public class ThreadStarvation {
 
         @Override
         public String call() throws InterruptedException {
+//            rpc等耗时操作
+            TimeUnit.MILLISECONDS.sleep(10L);
             List<Future<String>> innerFutureList = new ArrayList<>(5);
+//            因为有些SDK的接口有参数数量限制，所以多次调用，为提高RT，复用线程池并发调用
             for (int i = 0; i < 5; i++) {
                 innerFutureList.add(
                         this.executorService.submit(
                                 ()->{
                                     try {
-                                        TimeUnit.MILLISECONDS.sleep(3000L);
+                                        TimeUnit.MILLISECONDS.sleep(20L);
                                         return "OK";
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
