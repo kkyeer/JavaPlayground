@@ -17,7 +17,7 @@ public class ThreadStarvationEmulator {
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         ThreadStarvationEmulator.simulateFullBlock();
-//        ThreadStarvationEmulator.simulateHalfBlock();
+        ThreadStarvationEmulator.simulateHalfBlock();
     }
 
 
@@ -35,22 +35,29 @@ public class ThreadStarvationEmulator {
      * @throws InterruptedException
      */
     public static void simulateFullBlock() throws ExecutionException, InterruptedException {
+        System.out.println("----------------------模拟全死锁-------------------------");
         ExecutorService executorService = new ThreadPoolExecutor(10, 30,1, TimeUnit.MINUTES,
                 new LinkedBlockingQueue<>(100),Thread::new,
                 new ThreadPoolExecutor.CallerRunsPolicy());
         new ThreadStarvationEmulator(executorService,11).test();
+        executorService.shutdownNow();
+        System.out.println("----------------------完成-------------------------");
     }
 
-    /**`
+    /**
+     * 模拟线程池因为部分死锁导致速度减慢的情况
      *
      * @throws ExecutionException
      * @throws InterruptedException
      */
     public static void simulateHalfBlock() throws ExecutionException, InterruptedException {
+        System.out.println("----------------------模拟半死锁-------------------------");
         ExecutorService executorService = new ThreadPoolExecutor(10, 10,1, TimeUnit.MINUTES,
                 new LinkedBlockingQueue<>(100),Thread::new,
                 new ThreadPoolExecutor.CallerRunsPolicy());
         new ThreadStarvationEmulator(executorService,9).test();
+        executorService.shutdownNow();
+        System.out.println("----------------------完成-------------------------");
     }
 
     public void test() throws ExecutionException, InterruptedException {
@@ -60,9 +67,7 @@ public class ThreadStarvationEmulator {
                     shareThreadPool.submit(new MainTask(shareThreadPool))
             );
         }
-        blockUntilAllFinished(outerFutureList,true);
-        shareThreadPool.shutdownNow();
-        System.out.println("All good");
+        blockUntilAllFinished(outerFutureList,true,2000L);
     }
 
     private static class MainTask implements Callable<String> {
@@ -83,7 +88,7 @@ public class ThreadStarvationEmulator {
                         this.shareThreadPool.submit(new SubTask())
                 );
             }
-            blockUntilAllFinished(innerFutureList,false);
+            blockUntilAllFinished(innerFutureList,false,2000L);
             return "OK";
         }
 
@@ -100,18 +105,29 @@ public class ThreadStarvationEmulator {
      * 阻塞直到所有future均done
      * @param futureList future列表
      * @param printTimeConsume 是否打印耗时
+     * @param timeoutMillis 超时毫秒数
      * @param <E> 结果泛型
      * @return 结果列表
      * @throws InterruptedException 异常
      */
-    private static <E> List<E> blockUntilAllFinished(List<Future<E>> futureList,boolean printTimeConsume) throws InterruptedException {
+    private static <E> List<E> blockUntilAllFinished(List<Future<E>> futureList,boolean printTimeConsume,Long timeoutMillis) throws InterruptedException {
         List<E> resultList = new ArrayList<>();
         long start = System.currentTimeMillis();
         while (true){
+            if (futureList.isEmpty()) {
+                break;
+            }
             Iterator<Future<E>> futureIterator = futureList.iterator();
             while (futureIterator.hasNext()) {
                 Future<E> future = futureIterator.next();
-                if (future.isDone()) {
+                if((System.currentTimeMillis() - start) > timeoutMillis){
+                    if (printTimeConsume) {
+                        System.out.println("Timeout:consume "+(System.currentTimeMillis()-start)+" millis.");
+                    }
+                    futureIterator.remove();
+                    continue;
+                }
+                if (future.isDone() ) {
                     try {
                         E futureResult = future.get();
                         if (printTimeConsume) {
@@ -121,14 +137,12 @@ public class ThreadStarvationEmulator {
                         futureIterator.remove();
                     } catch (ExecutionException e) {
                         e.printStackTrace();
+                        futureIterator.remove();
                     }
                 }
             }
-            if (futureList.isEmpty()) {
-                break;
-            }else {
-                Thread.yield();
-            }
+            Thread.yield();
+
         }
         return resultList;
     }
