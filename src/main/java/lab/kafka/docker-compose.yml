@@ -1,35 +1,55 @@
 version: '3'
 services:
   kafka1:
-    image: wurstmeister/kafka
-    ports: 
+    image: wurstmeister/kafka:2.13-2.7.0
+    ports:
       - 0.0.0.0:9092:9092
+      - 0.0.0.0:29092:29092
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: 192.168.137.189
-      KAFKA_ZOOKEEPER_CONNECT: zk:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://192.168.50.118:29092
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: kafka_zk:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_BROKER_ID: 1
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker1.sock
 
   kafka2:
-    image: wurstmeister/kafka
-    ports: 
+    image: wurstmeister/kafka:2.13-2.7.0
+    ports:
       - 0.0.0.0:9093:9092
+      - 0.0.0.0:29093:29093
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: 192.168.137.189
-      KAFKA_ZOOKEEPER_CONNECT: zk:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9093,OUTSIDE://192.168.50.118:29093
+      KAFKA_LISTENERS: INSIDE://:9093,OUTSIDE://:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: kafka_zk:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_BROKER_ID: 2
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker2.sock
   kafka3:
-    image: wurstmeister/kafka
-    ports: 
+    image: wurstmeister/kafka:2.13-2.7.0
+    ports:
       - 0.0.0.0:9094:9092
+      - 0.0.0.0:29094:29094
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: 192.168.137.189
-      KAFKA_ZOOKEEPER_CONNECT: zk:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9094,OUTSIDE://192.168.50.118:29094
+      KAFKA_LISTENERS: INSIDE://:9094,OUTSIDE://:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: kafka_zk:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_BROKER_ID: 3
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-  zk:
+      - /var/run/docker.sock:/var/run/docker3.sock
+  kafka_zk:
     image: zookeeper
+  kafka_manager:
+    image: kafkamanager/kafka-manager:3.0.0.4
+    ports:
+      - 0.0.0.0:9000:9000
+    environment:
+      ZK_HOSTS: kafka_zk:2181
+      KAFKA_MANAGER_AUTH_ENABLED: "false"
+
