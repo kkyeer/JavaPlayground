@@ -18,6 +18,7 @@ public class ThreadStarvationEmulator {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         ThreadStarvationEmulator.simulateFullBlock();
         ThreadStarvationEmulator.simulateHalfBlock();
+        ThreadStarvationEmulator.solveWithSynchronousQueue();
     }
 
 
@@ -51,9 +52,25 @@ public class ThreadStarvationEmulator {
      * @throws InterruptedException
      */
     public static void simulateHalfBlock() throws ExecutionException, InterruptedException {
-        System.out.println("----------------------模拟半死锁-------------------------");
-        ExecutorService executorService = new ThreadPoolExecutor(10, 10,1, TimeUnit.MINUTES,
+        System.out.println("----------------------模拟半死锁--------------------");
+        ExecutorService executorService = new ThreadPoolExecutor(10, 100,1, TimeUnit.MINUTES,
                 new LinkedBlockingQueue<>(100),Thread::new,
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        new ThreadStarvationEmulator(executorService,9).test();
+        executorService.shutdownNow();
+        System.out.println("----------------------完成-------------------------");
+    }
+
+    /**
+     * 使用同步队列线程池解决上述问题
+     *
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
+    public static void solveWithSynchronousQueue() throws ExecutionException, InterruptedException {
+        System.out.println("----------------------模拟问题解决------------------");
+        ExecutorService executorService = new ThreadPoolExecutor(10, 100,1, TimeUnit.MINUTES,
+                new SynchronousQueue<>(),Thread::new,
                 new ThreadPoolExecutor.CallerRunsPolicy());
         new ThreadStarvationEmulator(executorService,9).test();
         executorService.shutdownNow();
