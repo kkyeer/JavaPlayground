@@ -15,7 +15,7 @@ import java.util.Properties;
  * @Modified By:
  */
 class BasicConsumer {
-    private static final String SERVER = "192.168.137.189:9092";
+    private static final String SERVER = "home.mini:29092,home.mini:29093,home.mini:29094";
 
     public static void main(String[] args) {
         Consumer<String, Person> personConsumer = personConsumer();
@@ -35,7 +35,7 @@ class BasicConsumer {
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SERVER);
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, CustomPersonSerializer.class.getCanonicalName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, CustomPersonSerializer.class.getCanonicalName());
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "gr");
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "eee");
         properties.put("auto.offset.reset","earliest ");
         return new KafkaConsumer<>(properties);
     }

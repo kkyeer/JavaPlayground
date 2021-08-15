@@ -17,7 +17,7 @@ import java.util.concurrent.Future;
  * @Modified By:
  */
 class BasicProducer {
-    private static final String SERVER = "192.168.137.189:9092";
+    private static final String SERVER = "home.mini:29092,home.mini:29093,home.mini:29094";
     public static void main(String[] args) {
 //        basicProduce();
         personProduce();
