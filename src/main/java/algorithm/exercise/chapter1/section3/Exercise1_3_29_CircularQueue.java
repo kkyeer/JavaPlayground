@@ -2,7 +2,7 @@ package algorithm.exercise.chapter1.section3;
 
 import java.util.Iterator;
 
-public class Excercise1_3_29_CircularQueue<E> implements Iterable<E> {
+public class Exercise1_3_29_CircularQueue<E> implements Iterable<E> {
     private class LinkedNode<T> {
         public T data;
         public LinkedNode<T> next;
@@ -16,7 +16,7 @@ public class Excercise1_3_29_CircularQueue<E> implements Iterable<E> {
         return size == 0;
     }
 
-    public Excercise1_3_29_CircularQueue<E> enqueue(E data) {
+    public Exercise1_3_29_CircularQueue<E> enqueue(E data) {
         LinkedNode<E> temp = new LinkedNode<>();
         temp.data = data;
         if (isEmpty()) {
@@ -46,11 +46,11 @@ public class Excercise1_3_29_CircularQueue<E> implements Iterable<E> {
     }
 
     private class CircularQueueIterator<T> implements Iterator<T> {
-        private Excercise1_3_29_CircularQueue<T>.LinkedNode<T> current;
+        private Exercise1_3_29_CircularQueue<T>.LinkedNode<T> current;
         private int times = 0;
         private final int size;
 
-        public CircularQueueIterator(Excercise1_3_29_CircularQueue<T> queue) {
+        public CircularQueueIterator(Exercise1_3_29_CircularQueue<T> queue) {
             this.size = queue.size;
             this.current = queue.isEmpty() ? null : queue.last.next;
         }
@@ -76,7 +76,7 @@ public class Excercise1_3_29_CircularQueue<E> implements Iterable<E> {
     }
 
     public static void main(String[] args) {
-        Excercise1_3_29_CircularQueue<Integer> queue = new Excercise1_3_29_CircularQueue<>();
+        Exercise1_3_29_CircularQueue<Integer> queue = new Exercise1_3_29_CircularQueue<>();
         queue.enqueue(1);
         queue.enqueue(2);
         // System.out.println(queue.dequeue());
