@@ -3,21 +3,18 @@ package algorithm.exercise.chapter1.section3;
 import java.util.Iterator;
 
 public class Exercise1_3_29_CircularQueue<E> implements Iterable<E> {
-    private class LinkedNode<T> {
-        public T data;
-        public LinkedNode<T> next;
-    }
+    
 
     private Integer size = 0;
 
-    private LinkedNode<E> last = null;
+    private UnidirectionalLinkedNode<E> last = null;
 
     public boolean isEmpty() {
         return size == 0;
     }
 
     public Exercise1_3_29_CircularQueue<E> enqueue(E data) {
-        LinkedNode<E> temp = new LinkedNode<>();
+        UnidirectionalLinkedNode<E> temp = new UnidirectionalLinkedNode<>();
         temp.data = data;
         if (isEmpty()) {
             last = temp;
@@ -46,7 +43,7 @@ public class Exercise1_3_29_CircularQueue<E> implements Iterable<E> {
     }
 
     private class CircularQueueIterator<T> implements Iterator<T> {
-        private Exercise1_3_29_CircularQueue<T>.LinkedNode<T> current;
+        private UnidirectionalLinkedNode<T> current;
         private int times = 0;
         private final int size;
 

@@ -1,21 +1,17 @@
 package algorithm.exercise.chapter1.section3;
 
-public class Excercise1_3_37_JosephusQueue<E> {
-    private class LinkedNode<T> {
-        public T data;
-        public LinkedNode<T> next;
-    }
+public class Exercise1_3_37_JosephusQueue<E> {
 
     private Integer size = 0;
 
-    private LinkedNode<E> last = null;
+    private UnidirectionalLinkedNode<E> last = null;
 
     public boolean isEmpty() {
         return size == 0;
     }
 
-    public Excercise1_3_37_JosephusQueue<E> enqueue(E data) {
-        LinkedNode<E> temp = new LinkedNode<>();
+    public Exercise1_3_37_JosephusQueue<E> enqueue(E data) {
+        UnidirectionalLinkedNode<E> temp = new UnidirectionalLinkedNode<>();
         temp.data = data;
         if (isEmpty()) {
             last = temp;
@@ -53,16 +49,15 @@ public class Excercise1_3_37_JosephusQueue<E> {
     }
 
     public static void main(String[] args) {
-        Excercise1_3_37_JosephusQueue<Integer> queue = new Excercise1_3_37_JosephusQueue<>();
+        Exercise1_3_37_JosephusQueue<Integer> queue = new Exercise1_3_37_JosephusQueue<>();
         int m = 7;
-        int n = 2;
+        int n = 4;
         for (int i = 0; i < m; i++) {
             queue.enqueue(i);
         }
-        queue.forward(1);
-        do {
-            System.out.println(queue.dequeue());
+        while (!queue.isEmpty()) {
             queue.forward(n - 1);
-        } while (!queue.isEmpty());
+            System.out.println(queue.dequeue());
+        }
     }
 }
