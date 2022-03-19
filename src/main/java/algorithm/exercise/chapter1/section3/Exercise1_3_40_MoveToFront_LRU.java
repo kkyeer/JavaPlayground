@@ -6,7 +6,7 @@ import java.util.Scanner;
 public class Exercise1_3_40_MoveToFront_LRU<T> {
     private int size = 0;
 
-    public UnidirectionalLinkedNode<T> last;
+    public UnidirectionalLinkedNode<T> first;
 
     public boolean isEmpty() {
         return size == 0;
@@ -23,22 +23,28 @@ public class Exercise1_3_40_MoveToFront_LRU<T> {
             if(!lru(data)){
                 UnidirectionalLinkedNode<T> insertNode = new UnidirectionalLinkedNode<>();
                 insertNode.data = data;
-                insertNode.next = last.next;
-                last = insertNode;
+                insertNode.next = first;
+                first = insertNode;
                 size++;
             };
         }
     }
 
     private boolean lru(T data) {
-        UnidirectionalLinkedNode<T> current = last;
-        UnidirectionalLinkedNode<T> prev = last;
+        UnidirectionalLinkedNode<T> current = first;
+        UnidirectionalLinkedNode<T> prev = null;
         for (int i = 0; i < size; i++) {
             if(Objects.equals(current.data, data)){
+                if (current == first) {
+                    return true;
+                }
                 prev.next = current.next;
-                last.next = current;
-                last = current;
+                current.next = first;
+                first = current;
                 return true;
+            }else{
+                prev = current;
+                current = current.next;
             }
         }
         return false;
@@ -48,21 +54,17 @@ public class Exercise1_3_40_MoveToFront_LRU<T> {
         if (isEmpty()) {
             return null;
         }
-        T data = last.next.data;
-        if (size == 1) {
-            last = null;
-        } else {
-            last.next = last.next.next;
-        }
+        T data = first.data;
+        first = first.next;
         size--;
         return data;
     }
 
     private void init(T data) {
         if (isEmpty()) {
-            last = new UnidirectionalLinkedNode<>();
-            last.data = data;
-            last.next = null;
+            first = new UnidirectionalLinkedNode<>();
+            first.data = data;
+            first.next = null;
             size++;
         }
     }
@@ -76,7 +78,7 @@ public class Exercise1_3_40_MoveToFront_LRU<T> {
             line = scanner.nextLine();
         }
         scanner.close();
-        for (int i = 0; i < lruCache.size; i++) {
+        while (!lruCache.isEmpty()){
             System.out.println(lruCache.dequeue());
         }
     }
