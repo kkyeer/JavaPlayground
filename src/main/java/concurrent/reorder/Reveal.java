@@ -10,7 +10,9 @@ import java.util.concurrent.Executors;
  * @Modified By:
  */
 class Reveal extends Thread {
-    private volatile int a = 0, b = 0;
+    private int a = 0;
+    private volatile int c = 0;
+    private volatile int b = 0;
     private int x = 0, y = 0;
     private ExecutorService executorService;
 
@@ -30,6 +32,7 @@ class Reveal extends Thread {
         Thread thread1 = new Thread(
                 () -> {
                     a = 1;
+                    c = 1;
                     y = b;
                 }
         );
@@ -49,6 +52,7 @@ class Reveal extends Thread {
         }
         // 这里的分析详见README
         if (x == 0 && y == 0) {
+
             System.err.println("Wrong,x = 0 and y = 0");
             executorService.shutdown();
         }
